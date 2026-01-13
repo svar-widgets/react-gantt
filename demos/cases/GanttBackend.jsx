@@ -10,7 +10,7 @@ const parseDates = (data) => {
 };
 
 export default function GanttBackend() {
-  const server = 'https://master--svar-gantt-go--dev.webix.io';
+  const server = 'https://gantt-backend.svar.dev';
 
   const [api, setApi] = useState();
   const [tasks, setTasks] = useState([]);
