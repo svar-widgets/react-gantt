@@ -10,6 +10,8 @@ import Material from './themes/Material.jsx';
 import Willow from './themes/Willow.jsx';
 import WillowDark from './themes/WillowDark.jsx';
 
+import pkg from '../package.json' with { type: 'json' };
+
 export {
   defaultEditorItems,
   defaultToolbarButtons,
@@ -23,6 +25,8 @@ export {
 } from '@svar-ui/gantt-store';
 
 export { registerEditorItem } from '@svar-ui/react-editor';
+
+export const version = pkg.version;
 
 export {
   Gantt,

@@ -1,0 +1,11 @@
+.rselect {
+  width: 150px;
+}
+.wx-gantt .myMarker {
+  background-color: rgba(255, 84, 84, 0.77);
+}
+.gtcell {
+  position: relative;
+  height: calc(100% - 48px);
+  border-top: var(--wx-gantt-border);
+}

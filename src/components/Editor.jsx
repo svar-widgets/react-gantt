@@ -95,6 +95,7 @@ function Editor({
   const activeTask = useStore(api, '_activeTask');
   const taskId = useStore(api, 'activeTask');
   const unscheduledTasks = useStore(api, 'unscheduledTasks');
+  const summary = useStore(api, 'summary');
   const links = useStore(api, 'links');
   const splitTasks = useStore(api, 'splitTasks');
   const segmentIndex = useMemo(
@@ -105,9 +106,10 @@ function Editor({
     () => segmentIndex || segmentIndex === 0,
     [segmentIndex],
   );
+  const taskTypes = useStore(api, 'taskTypes');
   const baseItems = useMemo(
-    () => getEditorItems({ unscheduledTasks }),
-    [unscheduledTasks],
+    () => getEditorItems({ unscheduledTasks, summary, taskTypes }),
+    [unscheduledTasks, summary, taskTypes],
   );
   const undo = useStore(api, 'undo');
 
@@ -115,8 +117,6 @@ function Editor({
   const [inProgress, setInProgress] = useState(null);
   const [editorValues, setEditorValues] = useState();
   const [editorErrors, setEditorErrors] = useState(null);
-
-  const taskTypes = useStore(api, 'taskTypes');
 
   const task = useMemo(() => {
     if (!activeTask) return null;
@@ -165,7 +165,7 @@ function Editor({
         item.onLinksChange = handleLinksChange;
       }
       if (item.comp === 'select' && item.key === 'type') {
-        const options = item.options ?? (taskTypes ? taskTypes : []);
+        const options = item.options ?? [];
         item.options = options.map((t) => ({
           ...t,
           label: _(t.label),
@@ -196,7 +196,7 @@ function Editor({
     return eItems.filter(
       (item) => !item.isHidden || !item.isHidden(editorValues, api.getState()),
     );
-  }, [items, baseItems, editorValues, taskTypes, _, api, autoSave]);
+  }, [items, baseItems, editorValues, _, api, autoSave]);
 
   const editorKeys = useMemo(
     () => editorItems.map((i) => i.key),

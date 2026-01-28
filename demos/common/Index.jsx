@@ -17,28 +17,25 @@ function DemoExplorerContent({
 }) {
   const navigate = useNavigate();
   const [skin, setSkin] = useState(skins[0].id);
-  const [title, setTitle] = useState('');
-  const [githubLink, setGithubLink] = useState('');
   const [show, setShow] = useState(true);
 
+  const currentPath = window.location.hash.slice(1);
+  const parts = currentPath.split('/');
+  const currentPage = `/${parts[1]}/:skin`;
+  const matched = links.find((a) => a[0] === currentPage);
+  const title = matched ? matched[1] : '';
   const baseLink =
     'https://github.com/svar-widgets/react-' +
     productTag +
     '/tree/main/demos/cases/';
 
+  const name = matched ? (matched[3] || matched[1]) : '';
+  const githubLink = `${baseLink}${name}.jsx`;
+
   const handleRouteChange = useCallback((path) => {
     const parts = path.split('/');
-    const page = parts[1];
     const newSkin = parts[2];
     setSkin(newSkin);
-
-    const targetPage = `/${page}/:skin`;
-    const matched = links.find((a) => a[0] === targetPage);
-    if (matched) {
-      setTitle(matched[1]);
-      const name = matched[3] || matched[1];
-      setGithubLink(`${baseLink}${name}.jsx`);
-    }
   }, []);
 
   const handleSkinChange = ({ value }) => {

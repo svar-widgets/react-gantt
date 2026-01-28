@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { getTypedData, taskTypes } from '../data';
-import { Gantt, Editor } from '../../src/';
+import { Gantt, Editor, ContextMenu } from '../../src/';
 import './GanttTaskTypes.css';
 
 function GanttTaskTypes(props) {
@@ -11,14 +11,16 @@ function GanttTaskTypes(props) {
 
   return (
     <div className="wx-I1glfWSB demo">
-      <Gantt
-        init={setApi}
-        {...skinSettings}
-        tasks={data.tasks}
-        links={data.links}
-        scales={data.scales}
-        taskTypes={taskTypes}
-      />
+      <ContextMenu api={api}>
+        <Gantt
+          init={setApi}
+          {...skinSettings}
+          tasks={data.tasks}
+          links={data.links}
+          scales={data.scales}
+          taskTypes={taskTypes}
+        />
+      </ContextMenu>
       {api && <Editor api={api} />}
     </div>
   );

@@ -53,7 +53,7 @@ const tasks = [
     base_start: new Date(2026, 3, 2),
     base_end: new Date(2026, 3, 16),
     text: 'Project planning',
-    progress: 30,
+    progress: 40,
     parent: 0,
     type: 'summary',
     open: true,
@@ -76,7 +76,7 @@ const tasks = [
     start: new Date(2026, 3, 5),
     duration: 2,
     text: 'Discussions',
-    progress: 100,
+    progress: 72,
     parent: 1,
     type: 'task',
     details: 'Team discussions on project strategies.',
@@ -139,7 +139,7 @@ const tasks = [
     base_start: new Date(2026, 3, 2),
     base_end: new Date(2026, 3, 12),
     text: 'Project management',
-    progress: 10,
+    progress: 8,
     parent: 0,
     type: 'summary',
     open: true,
@@ -191,7 +191,7 @@ const tasks = [
     base_start: new Date(2026, 3, 9),
     base_end: new Date(2026, 3, 30),
     text: 'Development',
-    progress: 30,
+    progress: 2,
     parent: 0,
     type: 'summary',
     open: true,
@@ -202,7 +202,7 @@ const tasks = [
     start: new Date(2026, 3, 9),
     duration: 6,
     text: 'Prototyping',
-    progress: 3,
+    progress: 7,
     parent: 3,
     type: 'task',
     assigned: 3,
@@ -233,7 +233,7 @@ const tasks = [
     base_start: new Date(2026, 3, 9),
     base_end: new Date(2026, 4, 3),
     text: 'Testing',
-    progress: 3,
+    progress: 4,
     parent: 0,
     type: 'summary',
     open: true,
@@ -244,7 +244,7 @@ const tasks = [
     start: new Date(2026, 3, 9),
     duration: 4,
     text: 'Testing prototype',
-    progress: 3,
+    progress: 24,
     parent: 4,
     type: 'task',
     assigned: 4,
@@ -300,7 +300,7 @@ const calendarTasks = [
     //start: new Date(2026, 3, 2),
     //end: new Date(2026, 3, 18),
     text: 'Project planning',
-    progress: 30,
+    progress: 40,
     parent: 0,
     type: 'summary',
     open: true,
@@ -323,7 +323,7 @@ const calendarTasks = [
     start: new Date(2026, 3, 7),
     duration: 2,
     text: 'Discussions',
-    progress: 100,
+    progress: 72,
     parent: 1,
     type: 'task',
     details: 'Team discussions on project strategies.',
@@ -386,7 +386,7 @@ const calendarTasks = [
     //start: new Date(2026, 3, 2),
     //end: new Date(2026, 3, 14),
     text: 'Project management',
-    progress: 10,
+    progress: 8,
     parent: 0,
     type: 'summary',
     open: true,
@@ -437,7 +437,7 @@ const calendarTasks = [
     //start: new Date(2026, 3, 9),
     //end: new Date(2026, 4, 8),
     text: 'Development',
-    progress: 30,
+    progress: 2,
     parent: 0,
     type: 'summary',
     open: true,
@@ -448,7 +448,7 @@ const calendarTasks = [
     start: new Date(2026, 3, 13),
     duration: 4,
     text: 'Prototyping',
-    progress: 3,
+    progress: 7,
     parent: 3,
     type: 'task',
     assigned: 3,
@@ -479,7 +479,7 @@ const calendarTasks = [
     //start: new Date(2026, 3, 9),
     //end: new Date(2026, 4, 13),
     text: 'Testing',
-    progress: 3,
+    progress: 4,
     parent: 0,
     type: 'summary',
     open: true,
@@ -490,7 +490,7 @@ const calendarTasks = [
     start: new Date(2026, 3, 17),
     duration: 4,
     text: 'Testing prototype',
-    progress: 3,
+    progress: 24,
     parent: 4,
     type: 'task',
     assigned: 4,
@@ -606,11 +606,6 @@ const links = [
     target: 42,
     type: 'e2s',
   },
-];
-
-const scales = [
-  { unit: 'month', step: 1, format: '%F %Y' },
-  { unit: 'day', step: 1, format: '%j', css: dayStyle },
 ];
 
 const tasksHour = [
@@ -773,7 +768,7 @@ const critTasks = [
     start: new Date(2026, 3, 5),
     end: new Date(2026, 3, 7),
     text: 'Discussions',
-    progress: 100,
+    progress: 72,
     type: 'task',
     open: true,
     details: 'Team discussions on project strategies.',
@@ -828,7 +823,7 @@ const critTasks = [
     start: new Date(2026, 3, 2),
     end: new Date(2026, 3, 12),
     text: 'Project management 1',
-    progress: 10,
+    progress: 8,
     parent: 0,
     type: 'summary',
     open: true,
@@ -882,7 +877,7 @@ const critTasks = [
     start: new Date(2026, 3, 2),
     end: new Date(2026, 3, 12),
     text: 'Project management 2',
-    progress: 10,
+    progress: 8,
     parent: 0,
     type: 'summary',
     open: true,
@@ -1014,22 +1009,17 @@ function addDays(d, n) {
   return new Date(new Date(d).setDate(d.getDate() + n));
 }
 
+const scales = [
+  { unit: 'month', step: 1, format: '%F %Y' },
+  { unit: 'day', step: 1, format: '%j', css: dayStyle },
+];
+
 const datasets = {
   day: { tasks, links, scales },
   hour: { tasks: tasksHour, links: linksHour, scales: scalesHour },
   critical: { tasks: critTasks, links: critLinks, scales },
   calendar: { tasks: calendarTasks, links, scales },
 };
-
-export const taskTypes = [
-  { id: 'task', label: 'Task' },
-  { id: 'summary', label: 'Summary task' },
-  { id: 'milestone', label: 'Milestone' },
-  { id: 'urgent', label: 'Urgent' },
-  { id: 'narrow', label: 'Narrow' },
-  { id: 'progress', label: 'Progress' },
-  { id: 'round', label: 'Rounded' },
-];
 
 export function getData(name, config) {
   const data = datasets[name || 'day'];
@@ -1069,6 +1059,16 @@ export function getData(name, config) {
 
   return data;
 }
+
+export const taskTypes = [
+  { id: 'task', label: 'Task' },
+  { id: 'summary', label: 'Summary task' },
+  { id: 'milestone', label: 'Milestone' },
+  { id: 'urgent', label: 'Urgent' },
+  { id: 'narrow', label: 'Narrow' },
+  { id: 'progress', label: 'Progress' },
+  { id: 'round', label: 'Rounded' },
+];
 
 export function getTypedData() {
   const t = tasks.map((task, i) => {

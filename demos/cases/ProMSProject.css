@@ -1,0 +1,5 @@
+.gtcell {
+  position: relative;
+  height: calc(100% - 48px);
+  border-top: var(--wx-gantt-border);
+}

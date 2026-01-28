@@ -1,0 +1,14 @@
+.button {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  padding: 5px 16px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background-color: #f2f2f7;
+  color: #2c2f3c;
+}
+:global(.wx-willow-dark-theme .button) {
+  background-color: #384047;
+  color: rgba(255, 255, 255, 0.9);
+}

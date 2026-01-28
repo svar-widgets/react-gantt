@@ -1,3 +1,19 @@
+## 2.5.1
+
+### New features
+
+- Server-side export to PNG, PDF, XLSX, MS Project | PRO feature
+- Client-side export and import from MS Project | PRO feature
+- Auto calculation of progress for summary tasks | PRO feature
+- Auto conversion of parent tasks to summary tasks | PRO feature
+
+### Fixes
+
+- Scale is expanded left with a small dataset during screen resizing
+- Markers ignore scale boundaries
+- Delete link placeholder is misplaced sometimes
+- Task duration and start date and incorrect during drag-n-drop on some scales
+
 ## Version 2.4.5
 
 ### Fixes
@@ -16,20 +32,17 @@ Community license changed from GPL to MIT
 
 ### New features
 
+- Basic auto scheduling | PRO feature
+- Handling of invalid links | PRO feature
+- Critical path calculation | PRO feature
+- Global calendar to define working schedule | PRO feature
+- Unscheduled tasks | PRO feature
+- Vertical markers on timeline | PRO feature
+- Baselines | PRO feature
+- Split tasks | PRO feature
+- Undo/redo | PRO feature
 - Ability to remove links from Chart UI
 - Locale-based scale formatting
-
-### Pro edition features
-
-- Basic auto scheduling
-- Handling of invalid links
-- Critical path calculation
-- Global calendar to define working schedule
-- Unscheduled tasks
-- Vertical markers on timeline
-- Baselines
-- Split tasks
-- Undo/redo
 
 ### Updates
 

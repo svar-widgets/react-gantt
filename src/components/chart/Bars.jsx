@@ -34,6 +34,7 @@ function Bars(props) {
   const tree = useStore(api, 'tasks');
   const schedule = useStore(api, 'schedule');
   const splitTasks = useStore(api, 'splitTasks');
+  const summary = useStore(api, 'summary');
 
   const tasks = useMemo(() => {
     if (!areaValue || !Array.isArray(rTasksValue)) return [];
@@ -53,7 +54,15 @@ function Bars(props) {
   const [taskMove, setTaskMove] = useState(null);
   const progressFromRef = useRef(null);
 
-  const [selectedLink, setSelectedLink] = useState(null);
+  const [selectedLinkId, setSelectedLinkId] = useState(null);
+
+  const selectedLink = useMemo(() => {
+    return (
+      selectedLinkId && {
+        ...rLinksValue.find((link) => link.id === selectedLinkId),
+      }
+    );
+  }, [selectedLinkId, rLinksCounter]);
 
   const [touched, setTouched] = useState(undefined);
   const touchTimerRef = useRef(null);
@@ -200,12 +209,9 @@ function Bars(props) {
     [down],
   );
 
-  const onSelectLink = useCallback(
-    (id) => {
-      setSelectedLink(id && { ...rLinksValue.find((link) => link.id === id) });
-    },
-    [rLinksValue],
-  );
+  const onSelectLink = useCallback((id) => {
+    setSelectedLinkId(id);
+  }, []);
 
   const up = useCallback(() => {
     if (progressFromRef.current) {
@@ -285,10 +291,11 @@ function Bars(props) {
           const { mode, l, w, x, id, start, segment, index } = taskMove;
           const task = api.getTask(id);
           const dx = clientX - x;
+          const minWidth = Math.round(lengthUnitWidth) || 1; 
           if (
             (!start && Math.abs(dx) < 20) ||
-            (mode === 'start' && w - dx < lengthUnitWidth) ||
-            (mode === 'end' && w + dx < lengthUnitWidth) ||
+            (mode === "start" && w - dx < minWidth) ||
+            (mode === "end" && w + dx < minWidth) || 
             (mode === 'move' &&
               ((dx < 0 && l + dx < 0) ||
                 (dx > 0 && l + w + dx > totalWidth))) ||
@@ -315,6 +322,7 @@ function Bars(props) {
             width: width,
             left: left,
             inProgress: true,
+            start,
             ...(segment && { segmentIndex: index }),
           });
 
@@ -465,8 +473,8 @@ function Bars(props) {
             });
           }
         } else if (css.contains('wx-delete-button-icon')) {
-          api.exec('delete-link', { id: selectedLink.id });
-          setSelectedLink(null);
+          api.exec('delete-link', { id: selectedLinkId });
+          setSelectedLinkId(null);
         } else {
           let segmentIndex;
           const segmentNode = locate(e, 'data-segment');
@@ -608,7 +616,7 @@ function Bars(props) {
           'wx-link wx-left' +
           (linkFrom ? ' wx-visible' : '') +
           (!linkFrom ||
-          (!alreadyLinked(task.id, true) && isLinkMarkerVisible(task.id))
+            (!alreadyLinked(task.id, true) && isLinkMarkerVisible(task.id))
             ? ' wx-target'
             : '') +
           (linkFrom && linkFrom.id === task.id && linkFrom.start
@@ -619,7 +627,7 @@ function Bars(props) {
           'wx-link wx-right' +
           (linkFrom ? ' wx-visible' : '') +
           (!linkFrom ||
-          (!alreadyLinked(task.id, false) && isLinkMarkerVisible(task.id))
+            (!alreadyLinked(task.id, false) && isLinkMarkerVisible(task.id))
             ? ' wx-target'
             : '') +
           (linkFrom && linkFrom.id === task.id && !linkFrom.start
@@ -638,7 +646,7 @@ function Bars(props) {
               >
                 {!readonly ? (
                   task.id === selectedLink?.target &&
-                  selectedLink?.type[2] === 's' ? (
+                    selectedLink?.type[2] === 's' ? (
                     <Button
                       type="danger"
                       css="wx-left wx-delete-button wx-delete-link"
@@ -662,7 +670,9 @@ function Bars(props) {
                         ></div>
                       </div>
                     ) : null}
-                    {!readonly && !(splitTasks && task.segments) ? (
+                    {!readonly &&
+                      !(splitTasks && task.segments) &&
+                      !(task.type == 'summary' && summary?.autoProgress) ? (
                       <div
                         className="wx-GKbcLEGA wx-progress-marker"
                         style={{ left: `calc(${task.progress}% - 10px)` }}
@@ -693,7 +703,7 @@ function Bars(props) {
 
                 {!readonly ? (
                   task.id === selectedLink?.target &&
-                  selectedLink?.type[2] === 'e' ? (
+                    selectedLink?.type[2] === 'e' ? (
                     <Button
                       type="danger"
                       css="wx-right wx-delete-button wx-delete-link"

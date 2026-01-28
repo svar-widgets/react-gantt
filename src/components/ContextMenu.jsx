@@ -41,8 +41,18 @@ const ContextMenu = forwardRef(function ContextMenu(
   const selectedVal = useStoreLater(api, 'selected');
   const selectedTasksVal = useStoreLater(api, '_selected');
   const splitTasksVal = useStoreLater(api, 'splitTasks');
+  const summaryVal = useStoreLater(api, 'summary');
 
-  const fullOptions = useMemo(() => getMenuOptions({ splitTasks: true }), []);
+  const config = useMemo(
+    () => ({
+      splitTasks: splitTasksVal,
+      taskTypes: taskTypesVal,
+      summary: summaryVal,
+    }),
+    [splitTasksVal, taskTypesVal, summaryVal],
+  );
+
+  const fullOptions = useMemo(() => getMenuOptions(config), [config]);
 
   useEffect(() => {
     if (!api) return;
@@ -68,20 +78,14 @@ const ContextMenu = forwardRef(function ContextMenu(
   function getOptions() {
     const finalOptions = optionsInit.length
       ? optionsInit
-      : getMenuOptions({ splitTasks: splitTasksVal });
-    const convertOption = finalOptions.find((o) => o.id === 'convert-task');
-    if (convertOption) {
-      convertOption.data = [];
-      (taskTypesVal || []).forEach((t) => {
-        convertOption.data.push(convertOption.dataFactory(t));
-      });
-    }
+      : getMenuOptions(config);
+
     return applyLocaleFn(finalOptions);
   }
 
   const cOptions = useMemo(() => {
     return getOptions();
-  }, [api, optionsInit, taskTypesVal, splitTasksVal, _]);
+  }, [api, optionsInit, config, _]);
 
   const selectedTasks = useMemo(
     () => (selectedTasksVal && selectedTasksVal.length ? selectedTasksVal : []),

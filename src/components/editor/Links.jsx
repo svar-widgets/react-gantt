@@ -100,59 +100,61 @@ export default function Links({ api, autoSave, onLinksChange }) {
       {(linksData || []).map((group, idx) =>
         group.data.length ? (
           <div className="wx-j93aYGQf wx-links" key={idx}>
-            <Field label={group.title} position="top">
-              <table>
-                <tbody>
-                  {group.data.map((obj) => (
-                    <tr key={obj.link.id}>
-                      <td className="wx-j93aYGQf wx-cell">
-                        <div className="wx-j93aYGQf wx-task-name">
-                          {obj.task.text || ''}
-                        </div>
-                      </td>
-                      {schedule?.auto && obj.link.type === 'e2s' ? (
-                        <td className="wx-j93aYGQf wx-cell wx-link-lag">
-                          <Text
-                            type="number"
-                            placeholder={_('Lag')}
-                            value={obj.link.lag}
-                            disabled={
-                              unscheduledTasks && _activeTask?.unscheduled
-                            }
-                            onChange={(ev) => {
-                              if (!ev.input)
-                                handleChange(obj.link.id, { lag: ev.value });
-                            }}
-                          />
+            <context.fieldId.Provider value={null}>
+              <Field label={group.title} position="top">
+                <table>
+                  <tbody>
+                    {group.data.map((obj) => (
+                      <tr key={obj.link.id}>
+                        <td className="wx-j93aYGQf wx-cell">
+                          <div className="wx-j93aYGQf wx-task-name">
+                            {obj.task.text || ''}
+                          </div>
                         </td>
-                      ) : null}
-                      <td className="wx-j93aYGQf wx-cell">
-                        <div className="wx-j93aYGQf wx-wrapper">
-                          <Combo
-                            value={obj.link.type}
-                            placeholder={_('Select link type')}
-                            options={list}
-                            onChange={(ev) =>
-                              handleChange(obj.link.id, { type: ev.value })
-                            }
-                          >
-                            {({ option }) => option.label}
-                          </Combo>
-                        </div>
-                      </td>
+                        {schedule?.auto && obj.link.type === 'e2s' ? (
+                          <td className="wx-j93aYGQf wx-cell wx-link-lag">
+                            <Text
+                              type="number"
+                              placeholder={_('Lag')}
+                              value={obj.link.lag}
+                              disabled={
+                                unscheduledTasks && _activeTask?.unscheduled
+                              }
+                              onChange={(ev) => {
+                                if (!ev.input)
+                                  handleChange(obj.link.id, { lag: ev.value });
+                              }}
+                            />
+                          </td>
+                        ) : null}
+                        <td className="wx-j93aYGQf wx-cell">
+                          <div className="wx-j93aYGQf wx-wrapper">
+                            <Combo
+                              value={obj.link.type}
+                              placeholder={_('Select link type')}
+                              options={list}
+                              onChange={(ev) =>
+                                handleChange(obj.link.id, { type: ev.value })
+                              }
+                            >
+                              {({ option }) => option.label}
+                            </Combo>
+                          </div>
+                        </td>
 
-                      <td className="wx-j93aYGQf wx-cell">
-                        <i
-                          className="wx-j93aYGQf wxi-delete wx-delete-icon"
-                          onClick={() => deleteLink(obj.link.id)}
-                          role="button"
-                        ></i>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Field>
+                        <td className="wx-j93aYGQf wx-cell">
+                          <i
+                            className="wx-j93aYGQf wxi-delete wx-delete-icon"
+                            onClick={() => deleteLink(obj.link.id)}
+                            role="button"
+                          ></i>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Field>
+            </context.fieldId.Provider>
           </div>
         ) : null,
       )}

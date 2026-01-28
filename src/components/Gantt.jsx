@@ -88,6 +88,8 @@ const Gantt = forwardRef(function Gantt(
     calendar = null,
     undo = false,
     splitTasks = false,
+    summary = null,
+    _export = false,
     ...restProps
   },
   ref,
@@ -136,12 +138,16 @@ const Gantt = forwardRef(function Gantt(
   // parse task dates effect
   const parsedTasksRef = useRef(null);
   if (parsedTasksRef.current !== tasks) {
-    parseTaskDates(tasks, { durationUnit, splitTasks, calendar });
+    if (!_export) {
+      parseTaskDates(tasks, { durationUnit, splitTasks, calendar });
+    }
     parsedTasksRef.current = tasks;
   }
   useEffect(() => {
-    parseTaskDates(tasks, { durationUnit, splitTasks, calendar });
-  }, [tasks, durationUnit, calendar, splitTasks]);
+    if (!_export) {
+      parseTaskDates(tasks, { durationUnit, splitTasks, calendar });
+    }
+  }, [tasks, durationUnit, calendar, splitTasks, _export]);
 
   const firstInRoute = useMemo(() => dataStore.in, [dataStore]);
 
@@ -176,7 +182,7 @@ const Gantt = forwardRef(function Gantt(
       on: firstInRoute.on.bind(firstInRoute),
       detach: firstInRoute.detach.bind(firstInRoute),
       getTask: dataStore.getTask.bind(dataStore),
-      serialize: dataStore.serialize.bind(dataStore),
+      serialize: () => dataStore.serialize(),
       getTable: (waitRender) =>
         waitRender
           ? new Promise((res) => setTimeout(() => res(tableAPIRef.current), 1))
@@ -229,6 +235,7 @@ const Gantt = forwardRef(function Gantt(
         undo,
         _weekStart: lCalendar.weekStart,
         splitTasks,
+        summary,
       });
     }
     initOnceRef.current++;
@@ -258,6 +265,7 @@ const Gantt = forwardRef(function Gantt(
     undo,
     lCalendar,
     splitTasks,
+    summary,
     dataStore,
   ]);
 
@@ -290,6 +298,7 @@ const Gantt = forwardRef(function Gantt(
       undo,
       _weekStart: lCalendar.weekStart,
       splitTasks,
+      summary,
     });
   }
 
