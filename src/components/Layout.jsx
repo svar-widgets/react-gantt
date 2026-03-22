@@ -277,6 +277,7 @@ function Layout(props) {
                   display={display}
                   compactMode={compactMode}
                   containerWidth={ganttWidth}
+                  containerRef={layoutRef}
                   onMove={(value) => setGridWidth(value)}
                   onDisplayChange={(display) => setDisplay(display)}
                 />
