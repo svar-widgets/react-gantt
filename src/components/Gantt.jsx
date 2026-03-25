@@ -77,6 +77,7 @@ const Gantt = forwardRef(function Gantt(
     cellBorders = 'full',
     zoom = false,
     baselines = false,
+    rollups = false,
     highlightTime: highlightTimeProp = null,
     init = null,
     autoScale = true,
@@ -89,6 +90,7 @@ const Gantt = forwardRef(function Gantt(
     undo = false,
     splitTasks = false,
     summary = null,
+    slack = false,
     _export = false,
     ...restProps
   },
@@ -223,6 +225,7 @@ const Gantt = forwardRef(function Gantt(
         selected,
         activeTask,
         baselines,
+        rollups: rollups === true ? { type: 'closest' } : rollups,
         autoScale,
         unscheduledTasks,
         markers,
@@ -232,6 +235,7 @@ const Gantt = forwardRef(function Gantt(
         projectStart,
         projectEnd,
         calendar,
+        slack,
         undo,
         _weekStart: lCalendar.weekStart,
         splitTasks,
@@ -253,6 +257,7 @@ const Gantt = forwardRef(function Gantt(
     selected,
     activeTask,
     baselines,
+    rollups,
     autoScale,
     unscheduledTasks,
     markers,
@@ -262,6 +267,7 @@ const Gantt = forwardRef(function Gantt(
     projectStart,
     projectEnd,
     calendar,
+    slack,
     undo,
     lCalendar,
     splitTasks,
@@ -286,6 +292,7 @@ const Gantt = forwardRef(function Gantt(
       selected,
       activeTask,
       baselines,
+      rollups: rollups === true ? { type: 'closest' } : rollups,
       autoScale,
       unscheduledTasks,
       markers,
@@ -295,6 +302,7 @@ const Gantt = forwardRef(function Gantt(
       projectStart,
       projectEnd,
       calendar,
+      slack,
       undo,
       _weekStart: lCalendar.weekStart,
       splitTasks,
@@ -306,8 +314,8 @@ const Gantt = forwardRef(function Gantt(
   const highlightTime = useMemo(() => {
     if (calendar) {
       return (day, unit) => {
-        if (unit == 'day' && !calendar.getDayHours(day)) return 'wx-weekend';
-        if (unit == 'hour' && !calendar.getDayHours(day)) return 'wx-weekend';
+        if (unit === 'day' && !calendar.getDayHours(day)) return 'wx-weekend';
+        if (unit === 'hour' && !calendar.getDayHours(day)) return 'wx-weekend';
         return '';
       };
     }

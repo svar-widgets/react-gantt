@@ -12,7 +12,7 @@ function TextCell({ row, column }) {
 
   return (
     <div className="wx-pqc08MHU wx-content" style={getStyle(row, column)}>
-      {row.data || row.lazy ? (
+      {!row.$empty && (row.data || row.lazy) ? (
         <i
           className={`wx-pqc08MHU wx-toggle-icon wxi-menu-${row.open ? 'down' : 'right'}`}
           data-action="open-task"

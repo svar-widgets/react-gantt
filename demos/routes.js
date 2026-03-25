@@ -22,6 +22,7 @@ import GanttToolbarButtons from './cases/GanttToolbarButtons.jsx';
 import GanttText from './cases/GanttText.jsx';
 import GanttLocale from './cases/GanttLocale.jsx';
 import GanttStartEnd from './cases/GanttStartEnd.jsx';
+import GanttScaleDate from './cases/GanttScaleDate.jsx';
 import GanttFullscreen from './cases/GanttFullscreen.jsx';
 import GanttZoom from './cases/GanttZoom.jsx';
 import GanttCustomZoom from './cases/GanttCustomZoom.jsx';
@@ -35,6 +36,10 @@ import ContextMenuOptions from './cases/ContextMenuOptions.jsx';
 import GanttHolidays from './cases/GanttHolidays.jsx';
 import GanttSort from './cases/GanttSort.jsx';
 import GanttCustomSort from './cases/GanttCustomSort.jsx';
+import GanttFilter from './cases/GanttFilter.jsx';
+import GanttFilterInline from './cases/GanttFilterInline.jsx';
+import GanttFilterBuilder from './cases/GanttFilterBuilder.jsx';
+import GanttFilterQuery from './cases/GanttFilterQuery.jsx';
 import SummariesProgress from './cases/ProSummariesProgress.jsx';
 import SummariesConvert from './cases/ProSummariesConvert.jsx';
 import GanttEditor from './cases/GanttEditor.jsx';
@@ -63,6 +68,7 @@ export const links = [
   ],
   ['/scales/:skin', 'Custom scales', GanttScales, 'GanttScales'],
   ['/start-end/:skin', 'Start/end dates', GanttStartEnd, 'GanttStartEnd'],
+  ['/scroll-date/:skin', 'Scroll to date', GanttScaleDate, 'GanttScaleDate'],
   [
     '/custom-scale/:skin',
     'Custom scale unit',
@@ -176,6 +182,25 @@ export const links = [
   ],
   ['/sorting/:skin', 'Custom sorting', GanttSort, 'GanttSort'],
   ['/sorting-api/:skin', 'Sort by API', GanttCustomSort, 'GanttCustomSort'],
+  [
+    '/filtering/:skin',
+    'Inline Filtering',
+    GanttFilterInline,
+    'GanttFilterInline',
+  ],
+  ['/filtering-api/:skin', 'External filters', GanttFilter, 'GanttFilter'],
+  [
+    '/filtering-builder/:skin',
+    'Integration with Filter Builder',
+    GanttFilterBuilder,
+    'GanttFilterBuilder',
+  ],
+  [
+    '/filtering-query/:skin',
+    'Integration with Filter Query',
+    GanttFilterQuery,
+    'GanttFilterQuery',
+  ],
 
   ['/backend/:skin', 'Backend data', GanttBackend, 'GanttBackend'],
   [

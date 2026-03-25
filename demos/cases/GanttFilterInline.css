@@ -1,0 +1,20 @@
+.demo.wx-aact7T2K {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.bar.wx-aact7T2K {
+	padding: 12px;
+	gap: 20px;
+	display: flex;
+}
+
+.gtcell.wx-aact7T2K {
+	position: relative;
+	height: calc(100% - 56px);
+	border-top: var(--wx-gantt-border);
+}

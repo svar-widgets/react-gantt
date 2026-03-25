@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 import { context } from '@svar-ui/react-core';
-import { locateID, locateAttr } from '@svar-ui/lib-dom';
+import { locateID } from '@svar-ui/lib-dom';
 import { reorder } from '../../helpers/reorder';
 import { prepareEditTask } from '@svar-ui/gantt-store';
 import { Grid as WxGrid } from '@svar-ui/react-grid';
@@ -35,16 +35,18 @@ export default function Grid(props) {
 
   const scrollTopVal = useStore(api, 'scrollTop');
   const cellHeightVal = useStore(api, 'cellHeight');
-  const scrollTask = useStore(api, '_scrollTask');
+  const focusTask = useStore(api, 'focusTask');
   const selectedVal = useStore(api, '_selected');
   const areaVal = useStore(api, 'area');
   const rTasksVal = useStore(api, '_tasks');
   const scalesVal = useStore(api, '_scales');
+  const headerLengthVal = useStore(api, '_headerLength');
   const columnsVal = useStore(api, 'columns');
   const sortVal = useStore(api, '_sort');
   const calendarVal = useStore(api, 'calendar');
   const durationUnitVal = useStore(api, 'durationUnit');
   const splitTasksVal = useStore(api, 'splitTasks');
+  const filterValuesVal = useStore(api, 'filterValues');
 
   const [dragTask, setDragTask] = useState(null);
 
@@ -61,6 +63,7 @@ export default function Grid(props) {
           task: { text: _('New Task') },
           mode: 'child',
           show: true,
+          focus: id ? 'grid' : null,
         });
       } else if (action === 'open-task') {
         const task = tasks.find((a) => a.id === id);
@@ -84,7 +87,8 @@ export default function Grid(props) {
             id,
             toggle: e.ctrlKey || e.metaKey,
             range: e.shiftKey,
-            show: true,
+            show: 'xy',
+            focus: 'grid',
           });
         }
       } else if (action === 'add-task') {
@@ -97,17 +101,34 @@ export default function Grid(props) {
   const tableRef = useRef(null);
   const tableContainerRef = useRef(null);
   const [gridWidth, setGridWidth] = useState(0);
+  const [gridHeight, setGridHeight] = useState(0);
   const [updateFlex, setUpdateFlex] = useState(false);
 
   useEffect(() => {
     const node = tableContainerRef.current;
     if (!node || typeof ResizeObserver === 'undefined') return;
-    const update = () => setGridWidth(node.clientWidth);
+    const update = () => {
+      setGridWidth(node.clientWidth);
+      setGridHeight(node.clientHeight);
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(node);
     return () => ro.disconnect();
   }, []);
+
+  const allTasks = useMemo(() => {
+    const rows =
+      dragTask && !tasks.find((t) => t.id === dragTask.id)
+        ? [...tasks, dragTask]
+        : tasks;
+    return rows.map((t) => ({ ...t }));
+  }, [tasks, dragTask]);
+
+  const allTasksRef = useRef(allTasks);
+  useEffect(() => {
+    allTasksRef.current = allTasks;
+  }, [allTasks]);
 
   const lastDetailRef = useRef(null);
 
@@ -122,8 +143,14 @@ export default function Grid(props) {
 
       if (inProgress) {
         if (mode === 'after') {
-          const task = api.getTask(target);
-          if (task.data?.length && task.open) {
+          const index = allTasksRef.current.findIndex((t) => t.id === id);
+          const targetIndex = allTasksRef.current.findIndex(
+            (t) => t.id === target,
+          );
+          const task = allTasksRef.current[targetIndex];
+          if (index - targetIndex === 1) {
+            mode = 'before';
+          } else if (task && task.data && task.open) {
             mode = 'before';
             target = task.data[0].id;
           }
@@ -153,30 +180,25 @@ export default function Grid(props) {
   }, [compactMode, display, columnWidth, width, gridWidth]);
 
   const tableStyle = useMemo(() => {
-    const style = {};
+    const style = {
+      minHeight: `${gridHeight + (cellHeightVal ?? 0) * 4}px`,
+    };
     if ((scrollX && display === 'all') || (display === 'grid' && scrollX)) {
       style.width = columnWidth;
     } else if (display === 'grid') {
       style.width = '100%';
     }
     return style;
-  }, [scrollX, display, columnWidth]);
-
-  const allTasks = useMemo(() => {
-    if (dragTask && !tasks.find((t) => t.id === dragTask.id)) {
-      return [...tasks, dragTask];
-    }
-    return tasks;
-  }, [tasks, dragTask]);
+  }, [scrollX, display, columnWidth, gridHeight, cellHeightVal]);
 
   const cols = useMemo(() => {
     let cols = (columnsVal || []).map((col) => {
       col = { ...col };
-      const header = col.header;
-      if (typeof header === 'object') {
-        const text = header.text && _(header.text);
-        col.header = { ...header, text };
-      } else col.header = _(header);
+      const header = [...col.header];
+      header.forEach((line) => {
+        if (line.text) line.text = _(line.text);
+      });
+      col.header = header;
       return col;
     });
     const ti = cols.findIndex((c) => c.id === 'text');
@@ -188,10 +210,8 @@ export default function Grid(props) {
     }
     if (ai !== -1) {
       cols[ai].cell = cols[ai].cell || ActionCell;
-
-      const header = cols[ai].header;
-      if (typeof header !== 'object') cols[ai].header = { text: header };
-      cols[ai].header.cell = header.cell || ActionCell;
+      const header = cols[ai].header[0];
+      cols[ai].header[0].cell = header.cell || ActionCell;
 
       if (readonly) {
         cols.splice(ai, 1);
@@ -227,6 +247,10 @@ export default function Grid(props) {
     return {};
   }, [allTasks, sortVal]);
 
+  const filters = useMemo(() => {
+    return sortMarks ? { ...filterValuesVal } : filterValuesVal;
+  }, [sortMarks, filterValuesVal]);
+
   const checkFlex = useCallback(() => {
     return cols.some((c) => c.flexgrow && !c.hidden);
   }, []); // cols defined later; will use latest value when invoked
@@ -255,7 +279,7 @@ export default function Grid(props) {
           return acc;
         }, 0);
 
-        if (actualWidth > baseColumnWidth && baseColumnWidth > containerWidth)
+        if (actualWidth > baseColumnWidth && baseColumnWidth >= containerWidth)
           forceReset = true;
       }
 
@@ -302,8 +326,8 @@ export default function Grid(props) {
     (e) => {
       if (!readonly) {
         const id = locateID(e);
-        const column = locateAttr(e, 'data-col-id');
-        const columnObj = column && cols.find((c) => c.id == column);
+        const column = locateID(e, 'data-col-id');
+        const columnObj = column && cols.find((c) => c.id === column);
         if (!columnObj?.editor && id) api.exec('show-editor', { id });
       }
     },
@@ -321,7 +345,6 @@ export default function Grid(props) {
       if (body)
         body.style.top = -((scrollTopVal ?? 0) - (scrollDelta ?? 0)) + 'px';
     }
-    if (tableContainerRef.current) tableContainerRef.current.scrollTop = 0;
   }, [allTasks, scrollTopVal, scrollDelta]);
 
   useEffect(() => {
@@ -344,23 +367,25 @@ export default function Grid(props) {
     };
   }, [fitColumns, tableStyle, display, basis, allTasks, setScrollOffset]);
 
+  const pendingFocusRef = useRef(false);
   useEffect(() => {
-    if (!scrollTask || !tableAPI) return;
+    if (!focusTask || !tableAPI) return;
 
-    const { id } = scrollTask;
-    const focusCell = tableAPI.getState().focusCell;
-    if (
-      focusCell &&
-      focusCell.row !== id &&
-      tableRef.current &&
-      tableRef.current.contains(document.activeElement)
-    ) {
-      tableAPI.exec('focus-cell', {
-        row: id,
-        column: focusCell.column,
-      });
+    const { id, column } = focusTask;
+    if (column) {
+      if (!pendingFocusRef.current) {
+        pendingFocusRef.current = true;
+        requestAnimationFrame(() => {
+          const focusCell = tableAPI.getState().focusCell;
+          tableAPI.exec('focus-cell', {
+            row: id,
+            column: focusCell?.column || cols[0]?.id,
+          });
+          pendingFocusRef.current = false;
+        });
+      }
     }
-  }, [scrollTask, tableAPI]);
+  }, [focusTask, tableAPI]);
 
   const startReorder = useCallback(
     ({ id }) => {
@@ -492,6 +517,16 @@ export default function Grid(props) {
       });
       return false;
     });
+    tapi.intercept('filter-rows', (ev) => {
+      const { key, value } = ev;
+
+      api.exec('filter-tasks', {
+        key,
+        value,
+        open: true,
+      });
+      return false;
+    });
 
     tapi.on('resize-column', () => {
       handlersStateRef.current.setColumnWidth(true);
@@ -550,7 +585,8 @@ export default function Grid(props) {
           init={init}
           sizes={{
             rowHeight: cellHeightVal,
-            headerHeight: (headerHeight ?? 0) - 1,
+            headerHeight:
+              (headerHeight ?? 0) / (headerLengthVal ?? 1),
           }}
           rowStyle={(row) =>
             row.$reorder ? 'wx-rHj6070p wx-reorder-task' : 'wx-rHj6070p'
@@ -562,6 +598,7 @@ export default function Grid(props) {
           columns={fitColumns}
           selectedRows={[...sel]}
           sortMarks={sortMarks}
+          filterValues={filters}
         />
       </div>
     </div>

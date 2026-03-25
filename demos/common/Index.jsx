@@ -1,14 +1,18 @@
-import { useState, useCallback } from 'react';
-import { HashRouter, NavLink, useNavigate } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { HashRouter, useNavigate } from 'react-router-dom';
 import { Willow } from '@svar-ui/react-core';
 
 import Router from './Router';
+import Link from './Link';
 import { links } from '../routes';
 import { GitHubLogoIcon, LogoIcon } from '../assets/icons';
 import './Index.css';
 
+const MOBILE_BREAKPOINT = 767;
+
 function DemoExplorerContent({
   productTag,
+  productLink,
   publicName,
   skins,
   Globals,
@@ -17,26 +21,47 @@ function DemoExplorerContent({
 }) {
   const navigate = useNavigate();
   const [skin, setSkin] = useState(skins[0].id);
+  const [title, setTitle] = useState('');
+  const [githubLink, setGithubLink] = useState('');
   const [show, setShow] = useState(true);
+  const [innerWidth, setInnerWidth] = useState(window.innerWidth);
 
-  const currentPath = window.location.hash.slice(1);
-  const parts = currentPath.split('/');
-  const currentPage = `/${parts[1]}/:skin`;
-  const matched = links.find((a) => a[0] === currentPage);
-  const title = matched ? matched[1] : '';
+  const isMobileView = innerWidth <= MOBILE_BREAKPOINT;
+
   const baseLink =
     'https://github.com/svar-widgets/react-' +
     productTag +
     '/tree/main/demos/cases/';
 
-  const name = matched ? (matched[3] || matched[1]) : '';
-  const githubLink = `${baseLink}${name}.jsx`;
-
-  const handleRouteChange = useCallback((path) => {
-    const parts = path.split('/');
-    const newSkin = parts[2];
-    setSkin(newSkin);
+  useEffect(() => {
+    const handleResize = () => setInnerWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (isMobileView && title) {
+      setShow(false);
+    }
+  }, [isMobileView, title]);
+
+  const handleRouteChange = useCallback(
+    (path) => {
+      const parts = path.split('/');
+      const page = parts[1];
+      const newSkin = parts[2];
+      setSkin(newSkin);
+
+      const targetPage = `/${page}/:skin`;
+      const matched = links.find((a) => a[0] === targetPage);
+      if (matched) {
+        setTitle(matched[1]);
+        const name = matched[3] || matched[1];
+        setGithubLink(`${baseLink}${name}.jsx`);
+      }
+    },
+    [],
+  );
 
   const handleSkinChange = ({ value }) => {
     setSkin(value);
@@ -54,7 +79,9 @@ function DemoExplorerContent({
   const SkinComponent = skins.find((s) => s.id === skin).Component;
 
   return (
-    <div className={`wx-demos wx-willow-theme layout ${show ? 'active' : ''}`}>
+    <div
+      className={`wx-demos wx-willow-theme layout ${show ? 'active' : ''}${isMobileView ? ' narrow' : ''}`}
+    >
       <div
         className={`wx-demos sidebar ${show ? 'active' : ''}`}
         role="tabpanel"
@@ -71,7 +98,7 @@ function DemoExplorerContent({
               </a>
               <div className="wx-demos separator"></div>
               <a
-                href={`https://svar.dev/react/gantt/`}
+                href={`https://svar.dev/react/${productLink}/`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -89,52 +116,78 @@ function DemoExplorerContent({
           </div>
           <div className="wx-demos box-links">
             {links.map((data) => (
-              <NavLink
+              <Link
                 key={data[0]}
-                to={data[0].replace(':skin', skin)}
-                className={({ isActive }) =>
-                  `wx-demos demo ${isActive ? 'active' : ''}`
-                }
-              >
-                {data[1]}
-                {data[4] && data[4].pro && <span className="pro">PRO</span>}
-              </NavLink>
+                data={data}
+                skin={skin}
+                onClick={() => isMobileView && setShow(false)}
+              />
             ))}
           </div>
         </div>
       </div>
 
       <div className="wx-demos page-content">
-        <div className="wx-demos page-content-header">
-          <div className="wx-demos header-title-box">
-            {!show && (
+        <div className="wx-demos page-header">
+          {isMobileView && (
+            <div className="wx-demos header-back-btn">
               <div className="wx-demos btn-box">
                 <Button
-                  type="secondary"
-                  icon="wxi-angle-right"
+                  icon="wxi-angle-left"
                   css="toggle-btn"
                   onClick={toggleSidebar}
-                />
-              </div>
-            )}
-            <div className="wx-demos hint">{title}</div>
-          </div>
-          <div className="wx-demos header-actions-container">
-            <div className="wx-demos segmented-box">
-              <Segmented
-                value={skin}
-                options={skins}
-                css="segmented-themes"
-                onChange={handleSkinChange}
-              />
-            </div>
-            <div className="wx-demos btn-box">
-              <a href={githubLink} target="_blank" rel="noopener noreferrer">
-                <Button type="secondary" css="toggle-btn">
-                  <img src={GitHubLogoIcon} alt="GitHub icon" />
-                  See code on GitHub
+                  type="secondary"
+                >
+                  Back to list
                 </Button>
-              </a>
+              </div>
+            </div>
+          )}
+          <div className="wx-demos page-content-header">
+            <div className="wx-demos header-title-box">
+              {!show && !isMobileView && (
+                <div className="wx-demos btn-box">
+                  <Button
+                    type="secondary"
+                    icon="wxi-angle-right"
+                    css="toggle-btn"
+                    onClick={toggleSidebar}
+                  />
+                </div>
+              )}
+              <div className="wx-demos hint">{title}</div>
+            </div>
+            <div className="wx-demos header-actions-container">
+              <div className="wx-demos segmented-box">
+                <Segmented
+                  value={skin}
+                  options={skins}
+                  css="segmented-themes"
+                  onChange={handleSkinChange}
+                >
+                  {({ option }) => {
+                    const Icon = option.icon;
+                    return (
+                      <>
+                        {Icon && <Icon />}
+                        {!isMobileView && (
+                          <span style={{ marginLeft: '4px' }}>{option.label}</span>
+                        )}
+                      </>
+                    );
+                  }}
+                </Segmented>
+              </div>
+              <div className="wx-demos btn-box">
+                <a href={githubLink} target="_blank" rel="noopener noreferrer">
+                  <Button type="secondary" css="toggle-btn link-btn">
+                    <div>
+                      <img src={GitHubLogoIcon} alt="GitHub icon" />
+                    </div>
+                    {!isMobileView && <span>See code on GitHub</span>}
+                  </Button>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -150,9 +203,8 @@ function DemoExplorerContent({
             data-wx-portal-root="true"
           >
             <Globals>
-              <SkinComponent>
-                <Router skin={skin} onRouteChange={handleRouteChange} />
-              </SkinComponent>
+              <SkinComponent/>
+              <Router skin={skin} onRouteChange={handleRouteChange} />
             </Globals>
           </div>
         </div>

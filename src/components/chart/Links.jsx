@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef } from 'react';
 import storeContext from '../../context';
 import { useStore } from '@svar-ui/lib-react';
+import { setID } from '@svar-ui/lib-dom';
 import './Links.css';
 
 export default function Links({ onSelectLink, selectedLink, readonly }) {
@@ -42,7 +43,7 @@ export default function Links({ onSelectLink, selectedLink, readonly }) {
       {(links || []).map((link) => {
         const className =
           'wx-dkx3NwEn wx-line' +
-          (criticalPath && link.$critical ? ' wx-critical' : '') +
+          (criticalPath && link.critical ? ' wx-critical' : '') +
           (!readonly ? ' wx-line-selectable' : '');
         return (
           <polyline
@@ -50,7 +51,7 @@ export default function Links({ onSelectLink, selectedLink, readonly }) {
             points={link.$p}
             key={link.id}
             onClick={() => !readonly && onSelectLink(link.id)}
-            data-link-id={link.id}
+            data-link-id={setID(link.id)}
           />
         );
       })}

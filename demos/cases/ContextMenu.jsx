@@ -16,6 +16,7 @@ function ContextMenu(props) {
           tasks={data.tasks}
           links={data.links}
           scales={data.scales}
+          zoom
         />
       </ContextMenuComponent>
       {api && <Editor api={api} />}

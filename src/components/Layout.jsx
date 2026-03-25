@@ -31,7 +31,6 @@ function Layout(props) {
   const rScales = useStore(api, '_scales');
   const rCellHeight = useStore(api, 'cellHeight');
   const rColumns = useStore(api, 'columns');
-  const rScrollTask = useStore(api, '_scrollTask');
   const undo = useStore(api, 'undo');
   const [compactMode, setCompactMode] = useState(false);
   let [gridWidth, setGridWidth] = useState(0);
@@ -72,7 +71,7 @@ function Layout(props) {
     if (rColumns.every((c) => c.width && !c.flexgrow)) {
       w = rColumns.reduce((acc, c) => acc + parseInt(c.width), 0);
     } else {
-      if (compactMode && display === 'chart') {
+      if (display === 'chart') {
         w = parseInt(rColumns.find((c) => c.id === 'action')?.width) || 50;
       } else {
         w = 440;
@@ -80,7 +79,7 @@ function Layout(props) {
     }
     gridWidth = w;
     return w;
-  }, [rColumns, compactMode, display]);
+  }, [rColumns, display]);
 
   useEffect(() => {
     setGridWidth(gridColumnWidth);
@@ -99,35 +98,45 @@ function Layout(props) {
     () => rScales.height + fullHeight + scrollSize,
     [rScales, fullHeight, scrollSize],
   );
-  const totalWidth = useMemo(
-    () => gridWidth + fullWidth,
-    [gridWidth, fullWidth],
-  );
-
   const chartRef = useRef(null);
-  const expandScale = useCallback(() => {
-    Promise.resolve().then(() => {
-      if ((ganttWidth ?? 0) > (totalWidth ?? 0)) {
-        const minWidth = (ganttWidth ?? 0) - gridWidth;
-        api.exec('expand-scale', { minWidth });
-      }
+
+  const latestLayout = useRef({
+    ganttWidth: 0,
+    gridWidth: 0,
+    ganttHeight: 0,
+    rScalesHeight: 0,
+    scrollSize: 0,
+  });
+
+  useEffect(() => {
+    latestLayout.current = {
+      ganttWidth: ganttWidth ?? 0,
+      gridWidth,
+      ganttHeight: ganttHeight ?? 0,
+      rScalesHeight: rScales.height,
+      scrollSize,
+    };
+  }, [ganttWidth, gridWidth, ganttHeight, rScales, scrollSize]);
+
+  const chartResizeHandler = useCallback(() => {
+    const { ganttWidth: gw, gridWidth: grw, ganttHeight: gh, rScalesHeight: sh, scrollSize: ss } = latestLayout.current;
+    api.exec('resize-chart', {
+      width: gw - grw,
+      height: gh - sh,
+      scrollSize: ss,
     });
-  }, [ganttWidth, totalWidth, gridWidth, api]);
+  }, [api]);
 
   useEffect(() => {
     let ro;
     if (chartRef.current) {
-      ro = new ResizeObserver(expandScale);
+      ro = new ResizeObserver(chartResizeHandler);
       ro.observe(chartRef.current);
     }
     return () => {
       if (ro) ro.disconnect();
     };
-  }, [chartRef.current, expandScale]);
-
-  useEffect(() => {
-    expandScale();
-  }, [fullWidth]);
+  }, [chartRef.current, chartResizeHandler]);
 
   const ganttDivRef = useRef(null);
   const pseudoRowsRef = useRef(null);
@@ -140,63 +149,6 @@ function Layout(props) {
       });
     }
   }, [api]);
-
-  const latest = useRef({
-    rTasks: [],
-    rScales: { height: 0 },
-    rCellHeight: 0,
-    scrollSize: 0,
-    ganttDiv: null,
-    ganttHeight: 0,
-  });
-
-  useEffect(() => {
-    latest.current = {
-      rTasks,
-      rScales,
-      rCellHeight,
-      scrollSize,
-      ganttDiv: ganttDivRef.current,
-      ganttHeight: ganttHeight ?? 0,
-    };
-  }, [rTasks, rScales, rCellHeight, scrollSize, ganttHeight]);
-
-  const scrollToTask = useCallback(
-    (value) => {
-      if (!value) return;
-      const {
-        rTasks: t,
-        rScales: sc,
-        rCellHeight: ch,
-        scrollSize: ss,
-        ganttDiv: el,
-        ganttHeight: gh,
-      } = latest.current;
-      if (!el) return;
-      const { id } = value;
-      const index = t.findIndex((tt) => tt.id === id);
-      if (index > -1) {
-        const height = gh - sc.height;
-        const scrollY = index * ch;
-        const now = el.scrollTop;
-        let top = null;
-        if (scrollY < now) {
-          top = scrollY;
-        } else if (scrollY + ch > now + height) {
-          top = scrollY - height + ch + ss;
-        }
-        if (top !== null) {
-          api.exec('scroll-chart', { top: Math.max(top, 0) });
-          ganttDivRef.current.scrollTop = Math.max(top, 0);
-        }
-      }
-    },
-    [api],
-  );
-
-  useEffect(() => {
-    scrollToTask(rScrollTask);
-  }, [rScrollTask]);
 
   useEffect(() => {
     const ganttDiv = ganttDivRef.current;

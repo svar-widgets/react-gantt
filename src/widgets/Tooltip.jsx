@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { locateID, getID } from '@svar-ui/lib-dom';
 import './Tooltip.css';
 
 function Tooltip(props) {
@@ -8,38 +9,45 @@ function Tooltip(props) {
   const tooltipNodeRef = useRef(null);
 
   const [areaCoords, setAreaCoords] = useState({});
-  const [tooltipData, setTooltipData] = useState(null);
+  const [contentProps, setContentProps] = useState({});
   const [pos, setPos] = useState({});
+  const posRef = useRef(pos);
+  posRef.current = pos;
 
   function findAttribute(node) {
+    const trg = node;
     while (node) {
       if (node.getAttribute) {
-        const id = node.getAttribute('data-tooltip-id');
-        const at = node.getAttribute('data-tooltip-at');
+        const id = getID(node, 'data-tooltip-id');
+        const at = getID(node, 'data-tooltip-at');
         const tooltip = node.getAttribute('data-tooltip');
-        if (id || tooltip) return { id, tooltip, target: node, at };
+        if (id || tooltip) {
+          const segment = locateID(trg, 'data-segment');
+          return { id, tooltip, target: node, at, segment };
+        }
       }
       node = node.parentNode;
     }
 
-    return { id: null, tooltip: null, target: null, at: null };
+    return { id: null, tooltip: null, target: null, at: null, segment: null };
   }
 
   useEffect(() => {
     const tooltipNode = tooltipNodeRef.current;
-    if (tooltipNode && pos && (pos.text || Content)) {
+    const currentPos = posRef.current;
+    if (tooltipNode && currentPos && (currentPos.text || Content)) {
       const tooltipCoords = tooltipNode.getBoundingClientRect();
 
       let updated = false;
-      let newLeft = pos.left;
-      let newTop = pos.top;
+      let newLeft = currentPos.left;
+      let newTop = currentPos.top;
 
       if (tooltipCoords.right >= areaCoords.right) {
         newLeft = areaCoords.width - tooltipCoords.width - 5;
         updated = true;
       }
       if (tooltipCoords.bottom >= areaCoords.bottom) {
-        newTop = pos.top - (tooltipCoords.bottom - areaCoords.bottom + 2);
+        newTop = currentPos.top - (tooltipCoords.bottom - areaCoords.bottom + 2);
         updated = true;
       }
 
@@ -50,7 +58,7 @@ function Tooltip(props) {
         });
       }
     }
-  }, [pos, areaCoords, Content]);
+  }, [areaCoords, Content]);
 
   const timerRef = useRef(null);
   const TIMEOUT = 300;
@@ -62,16 +70,16 @@ function Tooltip(props) {
   };
 
   function move(e) {
-    let { id, tooltip, target, at } = findAttribute(e.target);
+    let { id, tooltip, target, at, segment } = findAttribute(e.target);
     setPos(null);
-    setTooltipData(null);
+    setContentProps({});
 
     if (!tooltip) {
       if (!id) {
         clearTimeout(timerRef.current);
         return;
       } else {
-        tooltip = getTaskText(id);
+        tooltip = getTaskText(id, segment);
       }
     }
 
@@ -79,7 +87,9 @@ function Tooltip(props) {
 
     debounce(() => {
       if (id) {
-        setTooltipData(getTaskObj(prepareId(id)));
+        const props = { data: getTaskObj(id) };
+        if (segment != null) props.segmentIndex = segment;
+        setContentProps(props);
       }
 
       const targetCoords = target.getBoundingClientRect();
@@ -103,16 +113,14 @@ function Tooltip(props) {
   }
 
   function getTaskObj(id) {
-    return api?.getTask(prepareId(id)) || null;
+    return api?.getTask(id) || null;
   }
 
-  function getTaskText(id) {
-    return getTaskObj(id)?.text || '';
-  }
-
-  function prepareId(id) {
-    const numId = parseInt(id);
-    return isNaN(numId) ? id : numId;
+  function getTaskText(id, segment) {
+    const task = getTaskObj(id);
+    if (segment !== null && task?.segments)
+      return task.segments[segment]?.text || '';
+    return task?.text || '';
   }
 
   return (
@@ -128,7 +136,7 @@ function Tooltip(props) {
           style={{ top: `${pos.top}px`, left: `${pos.left}px` }}
         >
           {Content ? (
-            <Content data={tooltipData} />
+            <Content {...contentProps} />
           ) : pos.text ? (
             <div className="wx-KG0Lwsqo wx-gantt-tooltip-text">{pos.text}</div>
           ) : null}

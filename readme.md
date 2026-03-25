@@ -31,6 +31,7 @@ Interactive, drag-and-drop interface allows users to add, edit, and organize tas
 - Flexible time units: support for hours and minutes
 - Customizable grid columns
 - Sorting tasks in grid
+- Task filtering
 - Toolbar and context menu
 - Tooltips for taskbars
 - Zooming with scroll
@@ -46,6 +47,8 @@ In addition to free, open-source core, SVAR React Gantt offers the PRO Edition w
 - Work days calendar (non-linear calendar)
 - Auto-scheduling (forward mode and Finish-to-Start dependencies)
 - Critical path
+- Slack (float) visualization
+- Rollups
 - Baselines
 - Split tasks
 - Vertical markers
@@ -97,7 +100,7 @@ See the [getting started guide](https://docs.svar.dev/react/gantt/getting_starte
 
 ### ⭐ Show Your Support
 
-If SVAR React Gantt helps your project, consider giving us a star! It helps other developers discover this library and motivates us to keep improving.
+If SVAR React Gantt helps your project, consider [giving us a star](https://github.com/svar-widgets/react-gantt)! It helps other developers discover this library and motivates us to keep improving.
 
 ### :speech_balloon: Need Help?
 

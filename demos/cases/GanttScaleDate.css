@@ -1,0 +1,22 @@
+.demo.wx-aadXqRiz {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.bar.wx-aadXqRiz {
+	display: flex;
+	padding: 12px;
+	border-bottom: var(--wx-gantt-border);
+	gap: 12px;
+}
+
+.gantt.wx-aadXqRiz {
+	position: relative;
+	height: 100%;
+	overflow: hidden;
+}
+
+.input.wx-aadXqRiz {
+	margin: 4px;
+}

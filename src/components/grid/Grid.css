@@ -17,6 +17,7 @@
   --wx-table-header-background: var(--wx-background);
   --wx-table-header-border: var(--wx-gantt-border);
   --wx-table-header-cell-border: var(--wx-gantt-border);
+  height: 100%;
 }
 .wx-table .wx-grid .wx-table-box {
   border: none;
@@ -66,6 +67,7 @@
   text-transform: var(--wx-grid-header-text-transform);
   color: var(--wx-grid-header-font-color);
   padding: 0 5px;
+  border-bottom-color: transparent;
 }
 .wx-table .wx-grid .wx-header .wx-cell:first-child {
   padding-left: 14px;

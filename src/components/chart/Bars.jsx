@@ -7,14 +7,14 @@ import {
   useRef,
   useState,
 } from 'react';
-import { locate, locateID } from '@svar-ui/lib-dom';
-import { getID } from '../../helpers/locate';
+import { locate, locateID, getID, setID } from '@svar-ui/lib-dom';
 import storeContext from '../../context';
 import { useStore, useStoreWithCounter } from '@svar-ui/lib-react';
 import { isSegmentMoveAllowed, extendDragOptions } from '@svar-ui/gantt-store';
 import { Button } from '@svar-ui/react-core';
 import Links from './Links.jsx';
 import BarSegments from './BarSegments.jsx';
+import Rollups from './Rollups.jsx';
 import './Bars.css';
 
 function Bars(props) {
@@ -29,12 +29,15 @@ function Bars(props) {
   const taskTypesValue = useStore(api, 'taskTypes');
   const baselinesValue = useStore(api, 'baselines');
   const selectedValue = useStore(api, '_selected');
-  const scrollTaskStore = useStore(api, '_scrollTask');
+  const rollups = useStore(api, 'rollups');
+  const rRollups = useStore(api, '_rollups');
+  const focusTaskStore = useStore(api, 'focusTask');
   const criticalPath = useStore(api, 'criticalPath');
   const tree = useStore(api, 'tasks');
   const schedule = useStore(api, 'schedule');
   const splitTasks = useStore(api, 'splitTasks');
   const summary = useStore(api, 'summary');
+  const slack = useStore(api, 'slack');
 
   const tasks = useMemo(() => {
     if (!areaValue || !Array.isArray(rTasksValue)) return [];
@@ -85,15 +88,15 @@ function Bars(props) {
   }, [hasFocus, selectedValue]);
 
   useEffect(() => {
-    if (!scrollTaskStore) return;
-    if (hasFocus && scrollTaskStore) {
-      const { id } = scrollTaskStore;
+    if (!focusTaskStore) return;
+    if (focusTaskStore.column === false) {
+      const { id } = focusTaskStore;
       const node = containerRef.current?.querySelector(
-        `.wx-bar[data-id='${id}']`,
+        `.wx-bar[data-id='${setID(id)}']`,
       );
       if (node) node.focus({ preventScroll: true });
     }
-  }, [scrollTaskStore]);
+  }, [focusTaskStore]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -217,7 +220,7 @@ function Bars(props) {
     if (progressFromRef.current) {
       const { dx, id, marker, value } = progressFromRef.current;
       progressFromRef.current = null;
-      if (typeof value != 'undefined' && dx)
+      if (typeof value !== 'undefined' && dx)
         api.exec('update-task', {
           id,
           task: { progress: value },
@@ -291,11 +294,11 @@ function Bars(props) {
           const { mode, l, w, x, id, start, segment, index } = taskMove;
           const task = api.getTask(id);
           const dx = clientX - x;
-          const minWidth = Math.round(lengthUnitWidth) || 1; 
+          const minWidth = Math.round(lengthUnitWidth) || 1;
           if (
             (!start && Math.abs(dx) < 20) ||
-            (mode === "start" && w - dx < minWidth) ||
-            (mode === "end" && w + dx < minWidth) || 
+            (mode === 'start' && w - dx < minWidth) ||
+            (mode === 'end' && w + dx < minWidth) ||
             (mode === 'move' &&
               ((dx < 0 && l + dx < 0) ||
                 (dx > 0 && l + w + dx > totalWidth))) ||
@@ -328,8 +331,8 @@ function Bars(props) {
 
           if (
             !nextTaskMove.start &&
-            ((mode === 'move' && task.$x == l) ||
-              (mode !== 'move' && task.$w == w))
+            ((mode === 'move' && task.$x === l) ||
+              (mode !== 'move' && task.$w === w))
           ) {
             ignoreNextClickRef.current = true;
             up();
@@ -431,8 +434,8 @@ function Bars(props) {
 
       return !!rLinksValue.find((l) => {
         return (
-          l.target == target &&
-          l.source == source &&
+          l.target === target &&
+          l.source === source &&
           l.type === getLinkType(fromStart, toStart)
         );
       });
@@ -476,14 +479,12 @@ function Bars(props) {
           api.exec('delete-link', { id: selectedLinkId });
           setSelectedLinkId(null);
         } else {
-          let segmentIndex;
-          const segmentNode = locate(e, 'data-segment');
-          if (segmentNode) segmentIndex = segmentNode.dataset.segment * 1;
+          const segmentIndex = locateID(e.target, 'data-segment');
           api.exec('select-task', {
             id,
             toggle: e.ctrlKey || e.metaKey,
             range: e.shiftKey,
-            segmentIndex,
+            ...(segmentIndex !== null && { segmentIndex }),
           });
         }
       }
@@ -506,6 +507,7 @@ function Bars(props) {
       top: `${task.$y}px`,
       width: `${task.$w}px`,
       height: `${task.$h}px`,
+      lineHeight: `${task.$h}px`,
     };
   }, []);
 
@@ -515,6 +517,15 @@ function Bars(props) {
       top: `${task.$y_base}px`,
       width: `${task.$w_base}px`,
       height: `${task.$h_base}px`,
+    };
+  }, []);
+
+  const slackStyle = useCallback((task) => {
+    return {
+      left: `${task.$x_slack}px`,
+      top: `${task.$y}px`,
+      width: `${task.$w_slack}px`,
+      height: `${task.$h}px`,
     };
   }, []);
 
@@ -552,10 +563,10 @@ function Bars(props) {
   );
 
   const isTaskCritical = useCallback(
-    (taskId) => {
-      return criticalPath && tree.byId(taskId).$critical;
+    (task) => {
+      return criticalPath && task.critical;
     },
-    [criticalPath, tree],
+    [criticalPath],
   );
 
   const isLinkMarkerVisible = useCallback(
@@ -583,7 +594,6 @@ function Bars(props) {
   return (
     <div
       className="wx-GKbcLEGA wx-bars"
-      style={{ lineHeight: `${tasks.length ? tasks[0].$h : 0}px` }}
       ref={containerRef}
       onContextMenu={contextmenu}
       onMouseDown={mousedown}
@@ -598,18 +608,29 @@ function Bars(props) {
         return false;
       }}
     >
+      {slack
+        ? tasks.map((task) =>
+            task.$visibleSlack ? (
+              <div
+                key={task.id}
+                className={`wx-GKbcLEGA wx-slack wx-slack-${task.type}`}
+                style={slackStyle(task)}
+              ></div>
+            ) : null,
+          )
+        : null}
       <Links
         onSelectLink={onSelectLink}
         selectedLink={selectedLink}
         readonly={readonly}
       />
       {tasks.map((task) => {
-        if (task.$skip && task.$skip_baseline) return null;
+        if (task.$skip && task.$skip_baseline && !(rollups && rRollups?.[task.id])) return null;
         const barClass =
           `wx-bar wx-${taskTypeCss(task.type)}` +
           (touched && taskMove && task.id === taskMove.id ? ' wx-touch' : '') +
           (linkFrom && linkFrom.id === task.id ? ' wx-selected' : '') +
-          (isTaskCritical(task.id) ? ' wx-critical' : '') +
+          (isTaskCritical(task) ? ' wx-critical' : '') +
           (task.$reorder ? ' wx-reorder-task' : '') +
           (splitTasks && task.segments ? ' wx-split' : '');
         const leftLinkClass =
@@ -622,7 +643,7 @@ function Bars(props) {
           (linkFrom && linkFrom.id === task.id && linkFrom.start
             ? ' wx-selected'
             : '') +
-          (isTaskCritical(task.id) ? ' wx-critical' : '');
+          (isTaskCritical(task) ? ' wx-critical' : '');
         const rightLinkClass =
           'wx-link wx-right' +
           (linkFrom ? ' wx-visible' : '') +
@@ -633,15 +654,15 @@ function Bars(props) {
           (linkFrom && linkFrom.id === task.id && !linkFrom.start
             ? ' wx-selected'
             : '') +
-          (isTaskCritical(task.id) ? ' wx-critical' : '');
+          (isTaskCritical(task) ? ' wx-critical' : '');
         return (
           <Fragment key={task.id}>
             {!task.$skip && (
               <div
                 className={'wx-GKbcLEGA ' + barClass}
                 style={taskStyle(task)}
-                data-tooltip-id={task.id}
-                data-id={task.id}
+                data-id={setID(task.id)}
+                data-tooltip-id={setID(task.id)}
                 tabIndex={focused === task.id ? 0 : -1}
               >
                 {!readonly ? (
@@ -672,7 +693,7 @@ function Bars(props) {
                     ) : null}
                     {!readonly &&
                       !(splitTasks && task.segments) &&
-                      !(task.type == 'summary' && summary?.autoProgress) ? (
+                      !(task.type === 'summary' && summary?.autoProgress) ? (
                       <div
                         className="wx-GKbcLEGA wx-progress-marker"
                         style={{ left: `calc(${task.progress}% - 10px)` }}
@@ -718,6 +739,11 @@ function Bars(props) {
                 ) : null}
               </div>
             )}
+            {rollups && rRollups?.[task.id]
+              ? rRollups[task.id].map((rollup, i) => (
+                  <Rollups key={i} rollup={rollup} parent={task} />
+                ))
+              : null}
             {baselinesValue && !task.$skip_baseline ? (
               <div
                 className={

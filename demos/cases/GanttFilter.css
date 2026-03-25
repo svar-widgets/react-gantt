@@ -1,0 +1,28 @@
+.demo.wx-aabXqObx {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.bar.wx-aabXqObx {
+	padding: 12px;
+	gap: 20px;
+	display: flex;
+}
+
+.gtcell.wx-aabXqObx {
+	position: relative;
+	height: calc(100% - 96px);
+	border-top: var(--wx-gantt-border);
+}
+
+.reload-btn.wx-aabXqObx button {
+	height: 32px;
+}
+
+.reload-btn.wx-aabXqObx {
+	align-content: center;
+}

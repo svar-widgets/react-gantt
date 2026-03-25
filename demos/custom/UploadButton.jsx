@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import './UbloadButton.css';
 
 function UploadButton({ text, onChange }) {
@@ -17,7 +17,7 @@ function UploadButton({ text, onChange }) {
 
 	return (
 		<>
-			<button className="button" onClick={handleClick}>
+			<button className="upload-button" onClick={handleClick}>
 				{text}
 			</button>
 			<input

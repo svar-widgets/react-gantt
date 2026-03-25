@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getGeneratedData, complexScales } from '../data';
 import { Gantt } from '../../src/';
 import { Button } from '@svar-ui/react-core';

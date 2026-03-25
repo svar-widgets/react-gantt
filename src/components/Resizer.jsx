@@ -40,7 +40,6 @@ function Resizer(props) {
 
   const startRef = useRef(0);
   const posRef = useRef();
-  const timeoutRef = useRef();
   const displayRef = useRef(display);
 
   useEffect(() => {
@@ -77,8 +76,7 @@ function Resizer(props) {
         displayRef.current = nextDisplay;
       }
 
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => onMove && onMove(newPos), 100);
+      if (onMove) onMove(newPos);
     },
     [containerWidth, leftThreshold, rightThreshold, onMove],
   );

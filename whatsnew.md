@@ -1,3 +1,37 @@
+## 2.6.0
+
+### New features
+
+- Ability to filter data by API calls
+- Ability to filter data via header filters
+- Integration with SVAR Filter
+- Calculating and visualizing slack | PRO feature
+- Rollups | PRO feature
+
+### Updates
+
+- Ability to scroll to a specific date with the "scroll-chart" action
+- "resize-chart" action is added to monitor widget dimensions
+
+### Fixes
+
+- Export to PNG/PDF: incorrect link positions
+- The "scroll-chart" action does not scroll to provided coordinates
+- Chart and grid are sometimes misaligned when vertical scroll appears
+- Incorrect visible date during zooming
+- Gantt fails to initialize in SvelteKit with server-side rendering
+- API `ref` is not recognized in Typescript projects
+- Task duration and start date and incorrect during drag-n-drop on some scales
+- Incorrect grid width after expanding and collapsing it with all column fixed
+- Narrow scale does not expand when grid is collapsed by clicking
+- Tooltips are not shown for segments
+- Zoom speed is too high with laptop trackpad
+- Task reordering, opening and closing fails in case of integer string id
+
+### Breaking changes
+
+- "expand-scale" action is removed
+
 ## 2.5.2
 
 ### New features
@@ -29,6 +63,10 @@
 ## Version 2.4.3
 
 Community license changed from GPL to MIT
+
+### Fixes
+
+- Sourcemap included
 
 ### New features
 

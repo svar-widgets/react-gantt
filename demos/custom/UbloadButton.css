@@ -1,4 +1,4 @@
-.button {
+.upload-button {
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
@@ -8,7 +8,7 @@
   background-color: #f2f2f7;
   color: #2c2f3c;
 }
-:global(.wx-willow-dark-theme .button) {
+.wx-willow-dark-theme .upload-button {
   background-color: #384047;
   color: rgba(255, 255, 255, 0.9);
 }

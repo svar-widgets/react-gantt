@@ -9,6 +9,7 @@ import {
 import CellGrid from './CellGrid.jsx';
 import Bars from './Bars.jsx';
 import { hotkeys } from '@svar-ui/grid-store';
+import { setID } from '@svar-ui/lib-dom';
 import storeContext from '../../context';
 import { useStore, useStoreWithCounter } from '@svar-ui/lib-react';
 import './Chart.css';
@@ -29,17 +30,17 @@ function Chart(props) {
 
   const [selected, selectedCounter] = useStoreWithCounter(api, '_selected');
   const rScrollTop = useStore(api, 'scrollTop');
+  const rScrollLeft = useStore(api, 'scrollLeft');
   const cellHeight = useStore(api, 'cellHeight');
-  const cellWidth = useStore(api, 'cellWidth');
   const scales = useStore(api, '_scales');
   const markers = useStore(api, '_markers');
-  const rScrollTask = useStore(api, '_scrollTask');
   const zoom = useStore(api, 'zoom');
 
   const [chartHeight, setChartHeight] = useState();
   const chartRef = useRef(null);
+  const expectedScroll = useRef({ top: null, left: null });
 
-  const extraRows = 1 + (scales?.rows?.length || 0);
+  const extraRows = 1;
   const selectStyle = useMemo(() => {
     const t = [];
     if (selected && selected.length && cellHeight) {
@@ -60,21 +61,29 @@ function Chart(props) {
     if (!el) return;
 
     if (typeof rScrollTop === 'number') {
+      expectedScroll.current.top = rScrollTop;
       el.scrollTop = rScrollTop;
     }
-  }, [rScrollTop]);
+    if (typeof rScrollLeft === 'number') {
+      expectedScroll.current.left = rScrollLeft;
+      el.scrollLeft = rScrollLeft;
+    }
+  }, [rScrollTop, rScrollLeft]);
 
   const onScroll = () => {
-    const scroll = { left: true };
-    setScroll(scroll);
+    setScroll();
+    dataRequest();
   };
 
-  function setScroll(scroll) {
+  function setScroll() {
     const el = chartRef.current;
     if (!el) return;
-    const pos = {};
-    if (scroll.left) pos.left = el.scrollLeft;
-    api.exec('scroll-chart', pos);
+    const ev = {};
+    //prevents infinite scroll
+    if (el.scrollTop !== expectedScroll.current.top) ev.top = el.scrollTop;
+    if (el.scrollLeft !== expectedScroll.current.left) ev.left = el.scrollLeft;
+    if (!Object.keys(ev).length) return;
+    api.exec('scroll-chart', ev);
   }
 
   function dataRequest() {
@@ -94,45 +103,47 @@ function Chart(props) {
 
   useEffect(() => {
     dataRequest();
-  }, [chartHeight, rScrollTop]);
+  }, [chartHeight]);
 
-  const showTask = useCallback(
-    (value) => {
-      if (!value) return;
+  const lastWheelTimeRef = useRef(performance.now());
+  const pendingRef = useRef(false);
+  const MAX_ZOOM_RATE = 0.003;
 
-      const { id, mode } = value;
+  function clamp(value, min, max) {
+    return Math.max(Math.min(value, max), min);
+  }
 
-      if (mode.toString().indexOf('x') < 0) return;
-      const el = chartRef.current;
-      if (!el) return;
-      const { clientWidth } = el;
-      const task = api.getTask(id);
-      if (task.$x + task.$w < el.scrollLeft) {
-        api.exec('scroll-chart', { left: task.$x - (cellWidth || 0) });
-        el.scrollLeft = task.$x - (cellWidth || 0);
-      } else if (task.$x >= clientWidth + el.scrollLeft) {
-        const width = clientWidth < task.$w ? cellWidth || 0 : task.$w;
-        api.exec('scroll-chart', { left: task.$x - clientWidth + width });
-        el.scrollLeft = task.$x - clientWidth + width;
-      }
-    },
-    [api, cellWidth],
-  );
-
-  useEffect(() => {
-    showTask(rScrollTask);
-  }, [rScrollTask]);
+  function getZoomFactor(evDelta) {
+    const isTouchpad = Math.abs(evDelta) < 50;
+    const SENSITIVITY = isTouchpad ? 0.004 : 0.01;
+    const now = performance.now();
+    const dt = Math.min(now - lastWheelTimeRef.current, 50);
+    lastWheelTimeRef.current = now;
+    const normalized = clamp(
+      -evDelta * SENSITIVITY,
+      -MAX_ZOOM_RATE * dt,
+      MAX_ZOOM_RATE * dt,
+    );
+    return Math.exp(normalized);
+  }
 
   function onWheel(e) {
     if (zoom && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       const el = chartRef.current;
-      const dir = -Math.sign(e.deltaY);
+      const ratio = getZoomFactor(e.deltaY);
       const offset = e.clientX - (el ? el.getBoundingClientRect().left : 0);
-      api.exec('zoom-scale', {
-        dir,
-        offset,
-      });
+      if (!pendingRef.current) {
+        pendingRef.current = true;
+        requestAnimationFrame(() => {
+          api.exec('zoom-scale', {
+            dir: ratio > 1 ? 1 : -1,
+            ratio: Math.abs(1 - ratio),
+            offset,
+          });
+          pendingRef.current = false;
+        });
+      }
     }
   }
 
@@ -263,7 +274,7 @@ function Chart(props) {
                 <div
                   key={obj.id}
                   className="wx-mR7v2Xag wx-selected"
-                  data-id={obj.id}
+                  data-id={setID(obj.id)}
                   style={selectStyle[index]}
                 ></div>
               ) : null,

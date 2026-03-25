@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useContext } from 'react';
 import { Editor as WxEditor, registerEditorItem } from '@svar-ui/react-editor';
-import { Locale, RichSelect, Slider, Counter, TwoState } from '@svar-ui/react-core';
+import { Locale, RichSelect, Slider, Counter, TwoState, Checkbox } from '@svar-ui/react-core';
 import { getEditorItems, prepareEditTask } from '@svar-ui/gantt-store';
 import { dateToString, locale } from '@svar-ui/lib-dom';
 import { en } from '@svar-ui/gantt-locales';
@@ -22,6 +22,7 @@ registerEditorItem('twostate', TwoState);
 registerEditorItem('slider', Slider);
 registerEditorItem('counter', Counter);
 registerEditorItem('links', Links);
+registerEditorItem('checkbox', Checkbox);
 
 function Editor({
   api,
@@ -95,6 +96,7 @@ function Editor({
   const activeTask = useStore(api, '_activeTask');
   const taskId = useStore(api, 'activeTask');
   const unscheduledTasks = useStore(api, 'unscheduledTasks');
+  const rollups = useStore(api, 'rollups');
   const summary = useStore(api, 'summary');
   const links = useStore(api, 'links');
   const splitTasks = useStore(api, 'splitTasks');
@@ -108,8 +110,8 @@ function Editor({
   );
   const taskTypes = useStore(api, 'taskTypes');
   const baseItems = useMemo(
-    () => getEditorItems({ unscheduledTasks, summary, taskTypes }),
-    [unscheduledTasks, summary, taskTypes],
+    () => getEditorItems({ unscheduledTasks, rollups, summary, taskTypes }),
+    [unscheduledTasks, rollups, summary, taskTypes],
   );
   const undo = useStore(api, 'undo');
 
