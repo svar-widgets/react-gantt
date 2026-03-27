@@ -1,6 +1,6 @@
 {
   "name": "@svar-ui/react-gantt",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "A customizable, high-performance React Gantt chart component for building project timelines.",
   "productTag": "gantt",
   "productTrial": true,
@@ -59,16 +59,16 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "@svar-ui/gantt-data-provider": "2.6.0",
-    "@svar-ui/gantt-locales": "2.6.0",
-    "@svar-ui/gantt-store": "2.6.0",
+    "@svar-ui/gantt-data-provider": "2.6.1",
+    "@svar-ui/gantt-locales": "2.6.1",
+    "@svar-ui/gantt-store": "2.6.1",
     "@svar-ui/lib-dom": "0.12.1",
     "@svar-ui/lib-react": "1.3.0",
     "@svar-ui/lib-state": "1.9.6",
     "@svar-ui/react-core": "2.5.0",
     "@svar-ui/react-editor": "2.5.0",
     "@svar-ui/react-filter": "2.5.0",
-    "@svar-ui/react-grid": "2.6.0",
+    "@svar-ui/react-grid": "2.6.1",
     "@svar-ui/react-menu": "2.5.0",
     "@svar-ui/react-toolbar": "2.5.0"
   },

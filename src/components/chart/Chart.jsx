@@ -1,6 +1,7 @@
 import {
   useState,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useContext,
@@ -39,6 +40,7 @@ function Chart(props) {
   const [chartHeight, setChartHeight] = useState();
   const chartRef = useRef(null);
   const expectedScroll = useRef({ top: null, left: null });
+  const isUserScrollRef = useRef(false);
 
   const extraRows = 1;
   const selectStyle = useMemo(() => {
@@ -56,9 +58,14 @@ function Chart(props) {
     [chartHeight, fullHeight],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = chartRef.current;
     if (!el) return;
+
+    if (isUserScrollRef.current) {
+      isUserScrollRef.current = false;
+      return;
+    }
 
     if (typeof rScrollTop === 'number') {
       expectedScroll.current.top = rScrollTop;
@@ -83,6 +90,10 @@ function Chart(props) {
     if (el.scrollTop !== expectedScroll.current.top) ev.top = el.scrollTop;
     if (el.scrollLeft !== expectedScroll.current.left) ev.left = el.scrollLeft;
     if (!Object.keys(ev).length) return;
+    // set expectedScroll so that rapid scroll events don't re-dispatch stale values
+    if (ev.top !== undefined) expectedScroll.current.top = ev.top;
+    if (ev.left !== undefined) expectedScroll.current.left = ev.left;
+    isUserScrollRef.current = true;
     api.exec('scroll-chart', ev);
   }
 
@@ -127,7 +138,7 @@ function Chart(props) {
     return Math.exp(normalized);
   }
 
-  function onWheel(e) {
+  const onWheel = useCallback((e) => {
     if (zoom && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       const el = chartRef.current;
@@ -145,7 +156,7 @@ function Chart(props) {
         });
       }
     }
-  }
+  }, [zoom, api]);
 
   function getHoliday(cell) {
     const style = highlightTime(cell.date, cell.unit);

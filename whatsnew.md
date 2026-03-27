@@ -1,3 +1,10 @@
+## 2.6.1
+
+### Fixes
+
+- Incorrect handling of rollups in Datastore
+- Chart flickers during horizontal scroll and zooming
+
 ## 2.6.0
 
 ### New features

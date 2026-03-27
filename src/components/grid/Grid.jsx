@@ -168,28 +168,8 @@ export default function Grid(props) {
     [api],
   );
 
-  const scrollDelta = useMemo(() => areaVal?.from ?? 0, [areaVal]);
-  const headerHeight = useMemo(() => scalesVal?.height ?? 0, [scalesVal]);
-
-  const scrollX = useMemo(() => {
-    if (!compactMode && display !== 'grid') {
-      return (columnWidth ?? 0) > (width ?? 0);
-    } else {
-      return (columnWidth ?? 0) > (gridWidth ?? 0);
-    }
-  }, [compactMode, display, columnWidth, width, gridWidth]);
-
-  const tableStyle = useMemo(() => {
-    const style = {
-      minHeight: `${gridHeight + (cellHeightVal ?? 0) * 4}px`,
-    };
-    if ((scrollX && display === 'all') || (display === 'grid' && scrollX)) {
-      style.width = columnWidth;
-    } else if (display === 'grid') {
-      style.width = '100%';
-    }
-    return style;
-  }, [scrollX, display, columnWidth, gridHeight, cellHeightVal]);
+  // COLUMNS
+  // --------
 
   const cols = useMemo(() => {
     let cols = (columnsVal || []).map((col) => {
@@ -227,6 +207,32 @@ export default function Grid(props) {
     return cols;
   }, [columnsVal, _, readonly, compactMode]);
 
+  // SIZES
+  // --------
+
+  const scrollDelta = useMemo(() => areaVal?.from ?? 0, [areaVal]);
+  const headerHeight = useMemo(() => scalesVal?.height ?? 0, [scalesVal]);
+
+  const scrollX = useMemo(() => {
+    if (!compactMode && display !== 'grid') {
+      return (columnWidth ?? 0) > (width ?? 0);
+    } else {
+      return (columnWidth ?? 0) > (gridWidth ?? 0);
+    }
+  }, [compactMode, display, columnWidth, width, gridWidth]);
+
+  const tableStyle = useMemo(() => {
+    const style = {
+      minHeight: `${gridHeight + (cellHeightVal ?? 0) * 4}px`,
+    };
+    if ((scrollX && display === 'all') || (display === 'grid' && scrollX)) {
+      style.width = columnWidth;
+    } else if (display === 'grid') {
+      style.width = '100%';
+    }
+    return style;
+  }, [scrollX, display, columnWidth, gridHeight, cellHeightVal]);
+
   const basis = useMemo(() => {
     if (display === 'all') return `${width}px`;
     if (display === 'grid') return 'calc(100% - 4px)';
@@ -253,7 +259,7 @@ export default function Grid(props) {
 
   const checkFlex = useCallback(() => {
     return cols.some((c) => c.flexgrow && !c.hidden);
-  }, []); // cols defined later; will use latest value when invoked
+  }, [cols]);
 
   const hasFlexCol = useMemo(() => {
     // updateFlex is used to trigger re-evaluation
@@ -320,7 +326,7 @@ export default function Grid(props) {
       cols.forEach((c) => {
         if (c.$width && !c.flexgrow && !c.hidden) c.width = c.$width;
       });
-  }, []); // cols defined later; will use latest
+  }, [cols]);
 
   const onDblClick = useCallback(
     (e) => {
@@ -331,7 +337,7 @@ export default function Grid(props) {
         if (!columnObj?.editor && id) api.exec('show-editor', { id });
       }
     },
-    [api, readonly], // cols is defined later; relies on latest value at call time
+    [api, readonly, cols],
   );
 
   const sel = useMemo(
