@@ -12,7 +12,6 @@
   align-items: end;
   font-family: var(--wx-font-family);
   font-size: var(--wx-font-size);
-  padding: 12px 0;
   --wx-label-width: 130px;
 }
 

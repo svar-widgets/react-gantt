@@ -1,0 +1,26 @@
+.myeditor {
+  min-height: 660px;
+}
+.rows.wx-L7sT2vX4 {
+  height: 100%;
+}
+.bar.wx-L7sT2vX4 {
+  display: flex;
+  align-items: center;
+  height: 50px;
+  border-bottom: var(--wx-gantt-border);
+  padding: 12px;
+}
+.pro.wx-L7sT2vX4 {
+  color: var(--demo-framework-color);
+  border: 1px solid var(--demo-framework-color);
+  border-radius: 4px;
+  padding: 0px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 4px;
+  display: inline-flex;
+}
+.gtcell.wx-L7sT2vX4 {
+  height: calc(100% - 50px);
+}

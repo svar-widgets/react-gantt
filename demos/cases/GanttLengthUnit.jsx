@@ -61,15 +61,15 @@ function GanttLengthUnit({ skinSettings }) {
   }, [lengthUnit]);
 
   return (
-    <div className="wx-VOqDTkHq demo">
-      <div className="wx-VOqDTkHq bar">
+    <div className="demo wx-M5bD8hJk">
+      <div className="bar wx-M5bD8hJk">
         <Select
           value={lengthUnit}
           options={options}
           onChange={({ value }) => setLengthUnit(value)}
         />
       </div>
-      <div className="wx-VOqDTkHq gantt">
+      <div className="gantt wx-M5bD8hJk">
         <Gantt
           {...skinSettings}
           tasks={data.tasks}

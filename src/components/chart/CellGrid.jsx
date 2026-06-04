@@ -3,10 +3,11 @@ import storeContext from '../../context';
 import { grid } from '@svar-ui/gantt-store';
 import { useStore } from '@svar-ui/lib-react';
 
-function CellGrid({ borders = '' }) {
+function CellGrid() {
   const api = useContext(storeContext);
   const cellWidth = useStore(api, 'cellWidth');
   const cellHeight = useStore(api, 'cellHeight');
+  const cellBorders = useStore(api, 'cellBorders');
 
   const nodeRef = useRef(null);
   const [color, setColor] = useState('#e4e4e4');
@@ -25,7 +26,7 @@ function CellGrid({ borders = '' }) {
     height: '100%',
     background:
       cellWidth != null && cellHeight != null
-        ? `url(${grid(cellWidth, cellHeight, color, borders)})`
+        ? `url(${grid(cellWidth, cellHeight, color, cellBorders)})`
         : undefined,
     position: 'absolute',
   };

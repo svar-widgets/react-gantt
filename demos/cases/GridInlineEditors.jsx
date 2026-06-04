@@ -32,7 +32,7 @@ function GridInlineEditors(props) {
         align: 'center',
         editor: 'text',
       },
-      { id: 'add-task', header: 'Add task', width: 50, align: 'center' },
+      { id: 'add-task', header: 'Add task', width: 37, align: 'center' },
     ],
     [],
   );

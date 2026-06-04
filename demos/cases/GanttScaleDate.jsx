@@ -13,7 +13,7 @@ function GanttScaleDate({ skinSettings }) {
   }
 
   function scrollToStart() {
-    api.exec('scroll-chart', { date: new Date() });
+    api.exec('scroll-chart', { date: new Date(2026, 3, 1) });
   }
 
   function scrollToEnd() {
@@ -21,15 +21,15 @@ function GanttScaleDate({ skinSettings }) {
   }
 
   return (
-    <div className="wx-aadXqRiz demo">
+    <div className="demo wx-P8aB4dF2">
       <Locale>
-        <div className="wx-aadXqRiz bar">
+        <div className="bar wx-P8aB4dF2">
           <Button onClick={scrollToStart}>Scroll to scale start</Button>
           <Button onClick={scrollToEnd}>Scroll to scale end</Button>
         </div>
       </Locale>
 
-      <div className="wx-aadXqRiz gantt">
+      <div className="gantt wx-P8aB4dF2">
         <Gantt
           init={init}
           {...skinSettings}

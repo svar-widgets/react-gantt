@@ -1,69 +1,73 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { useWritableProp } from '@svar-ui/lib-react';
+import { useMemo, useRef, useCallback } from 'react';
+import { useStore } from '@svar-ui/lib-react';
 import './Resizer.css';
 
 function Resizer(props) {
   const {
+    api,
     position = 'after',
     size = 4,
     dir = 'x',
     onMove,
-    onDisplayChange,
-    compactMode,
     containerWidth = 0,
-    leftThreshold = 50,
     rightThreshold = 50,
   } = props;
 
-  const [value, setValue] = useWritableProp(props.value ?? 0);
-  const [display, setDisplay] = useWritableProp(props.display ?? 'all');
+  const gridWidth = useStore(api, 'gridWidth');
+  const displayMode = useStore(api, 'displayMode');
+  const gridCollapseThreshold = useStore(api, '_gridCollapseThreshold');
+  const compactMode = useStore(api, '_compactMode');
 
-  function getBox(val) {
+  function getBox(value) {
     let offset = 0;
-    if (position == 'center') offset = size / 2;
-    else if (position == 'before') offset = size;
+    if (position === 'center') offset = size / 2;
+    else if (position === 'before') offset = size;
 
     const box = {
       size: [size + 'px', 'auto'],
-      p: [val - offset + 'px', '0px'],
+      p: [value - offset + 'px', '0px'],
       p2: ['auto', '0px'],
     };
 
-    if (dir != 'x') {
+    if (dir !== 'x') {
       for (let name in box) box[name] = box[name].reverse();
     }
     return box;
   }
 
-  const [active, setActive] = useState(false);
-  const [initialPosition, setInitialPosition] = useState(null);
-
   const startRef = useRef(0);
   const posRef = useRef();
-  const displayRef = useRef(display);
+  const timeoutRef = useRef();
 
-  useEffect(() => {
-    displayRef.current = display;
-  }, [display]);
-
-  useEffect(() => {
-    if (initialPosition === null && value > 0) {
-      setInitialPosition(value);
-    }
-  }, [initialPosition, value]);
+  const gridWidthRef = useRef(gridWidth);
+  gridWidthRef.current = gridWidth;
+  const displayModeRef = useRef(displayMode);
+  displayModeRef.current = displayMode;
+  const compactModeRef = useRef(compactMode);
+  compactModeRef.current = compactMode;
+  const gridCollapseThresholdRef = useRef(gridCollapseThreshold);
+  gridCollapseThresholdRef.current = gridCollapseThreshold;
 
   function getEventPos(ev) {
-    return dir == 'x' ? ev.clientX : ev.clientY;
+    return dir === 'x' ? ev.clientX : ev.clientY;
   }
+
+  const cursor = useMemo(
+    () =>
+      displayMode !== 'all' ? 'auto' : dir === 'x' ? 'ew-resize' : 'ns-resize',
+    [displayMode, dir],
+  );
 
   const move = useCallback(
     (ev) => {
       const newPos = posRef.current + getEventPos(ev) - startRef.current;
 
-      setValue(newPos);
+      api.exec('resize-grid', {
+        width: newPos,
+      });
       let nextDisplay;
 
-      if (newPos <= leftThreshold) {
+      if (newPos <= gridCollapseThresholdRef.current) {
         nextDisplay = 'chart';
       } else if (containerWidth - newPos <= rightThreshold) {
         nextDisplay = 'grid';
@@ -71,40 +75,41 @@ function Resizer(props) {
         nextDisplay = 'all';
       }
 
-      if (displayRef.current !== nextDisplay) {
-        setDisplay(nextDisplay);
-        displayRef.current = nextDisplay;
+      if (displayModeRef.current !== nextDisplay) {
+        api.exec('set-display-mode', {
+          mode: nextDisplay,
+        });
       }
 
-      if (onMove) onMove(newPos);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(
+        () => onMove && onMove(newPos),
+        100,
+      );
     },
-    [containerWidth, leftThreshold, rightThreshold, onMove],
+    [api, containerWidth, rightThreshold, onMove, dir],
   );
 
   const up = useCallback(() => {
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
-    setActive(false);
     window.removeEventListener('mousemove', move);
     window.removeEventListener('mouseup', up);
   }, [move]);
 
-  const cursor = useMemo(
-    () => (display !== 'all' ? 'auto' : dir == 'x' ? 'ew-resize' : 'ns-resize'),
-    [display, dir],
-  );
-
   const down = useCallback(
     (ev) => {
       // Prevent dragging when in normal mode and only one view is visible
-      if (!compactMode && (display === 'grid' || display === 'chart')) {
+      if (
+        compactModeRef.current ||
+        displayModeRef.current === 'grid' ||
+        displayModeRef.current === 'chart'
+      ) {
         return;
       }
 
       startRef.current = getEventPos(ev);
-
-      posRef.current = value;
-      setActive(true);
+      posRef.current = gridWidthRef.current;
 
       document.body.style.cursor = cursor;
       document.body.style.userSelect = 'none';
@@ -112,32 +117,20 @@ function Resizer(props) {
       window.addEventListener('mousemove', move);
       window.addEventListener('mouseup', up);
     },
-    [cursor, move, up, value, compactMode, display],
+    [cursor, move, up, dir],
   );
 
-  function resetToInitial() {
-    setDisplay('all');
-    if (initialPosition !== null) {
-      setValue(initialPosition);
-      if (onMove) onMove(initialPosition);
-    }
-  }
-
   function handleExpand(direction) {
+    let mode;
     if (compactMode) {
-      const newDisplay = display === 'chart' ? 'grid' : 'chart';
-      setDisplay(newDisplay);
-      onDisplayChange(newDisplay);
+      mode = displayMode === 'chart' ? 'grid' : 'chart';
     } else {
-      if (display === 'grid' || display === 'chart') {
-        resetToInitial();
-        onDisplayChange('all');
-      } else {
-        const newDisplay = direction === 'left' ? 'chart' : 'grid';
-        setDisplay(newDisplay);
-        onDisplayChange(newDisplay);
-      }
+      if (displayMode === 'grid' || displayMode === 'chart') {
+        mode = 'all';
+      } else mode = direction === 'left' ? 'chart' : 'grid';
     }
+
+    api.exec('set-display-mode', { mode });
   }
 
   function handleExpandLeft() {
@@ -148,13 +141,15 @@ function Resizer(props) {
     handleExpand('right');
   }
 
-  const b = useMemo(() => getBox(value), [value, position, size, dir]);
+  const b = useMemo(
+    () => getBox(gridWidth),
+    [gridWidth, position, size, dir],
+  );
 
   const rootClassName = [
     'wx-resizer',
     `wx-resizer-${dir}`,
-    `wx-resizer-display-${display}`,
-    active ? 'wx-resizer-active' : '',
+    `wx-resizer-display-${displayMode}`,
   ]
     .filter(Boolean)
     .join(' ');

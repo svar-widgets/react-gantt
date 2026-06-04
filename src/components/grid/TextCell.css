@@ -14,6 +14,7 @@
   font-size: var(--wx-icon-size);
   color: var(--wx-gantt-icon-color);
   cursor: pointer;
+  flex-shrink: 0;
 }
 .wx-toggle-placeholder.wx-pqc08MHU {
   width: var(--wx-icon-size);

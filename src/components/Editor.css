@@ -1,6 +1,38 @@
-.wx-sidearea .wx-gantt-editor.wx-XkvqDXuw {
+.wx-sidearea .wx-gantt-editor {
   width: 450px;
 }
-.wx-sidearea .wx-gantt-editor.wx-full-screen.wx-XkvqDXuw {
+.wx-sidearea .wx-gantt-editor.wx-full-screen {
   width: 100%;
+}
+
+.wx-gantt-editor .wx-editor-toolbar {
+  margin-bottom: 4px;
+}
+.wx-gantt-editor .wx-editor-toolbar .wx-toolbar {
+  padding-left: 0;
+  padding-right: 0;
+  gap: 16px;
+}
+.wx-gantt-editor .wx-editor-toolbar .wx-tb-body {
+  gap: 8px;
+}
+.wx-gantt-editor .wx-editor-toolbar .wx-tb-element {
+  padding-left: 0;
+  padding-right: 0;
+}
+.wx-gantt-editor .wx-editor-toolbar .wx-gantt-tabs {
+  align-self: start;
+}
+.wx-gantt-editor .wx-editor-toolbar .wx-gantt-tabs .wx-tabs {
+  gap: 16px;
+}
+.wx-gantt-editor .wx-editor-toolbar .wx-gantt-tabs button {
+  padding-left: 0;
+  padding-right: 0;
+  min-width: 40px;
+}
+.wx-gantt-editor .wx-editor-toolbar .wx-gantt-tabs .wx-active:after,
+.wx-gantt-editor .wx-editor-toolbar .wx-gantt-tabs button:hover:after {
+  width: 100%;
+  left: 0;
 }

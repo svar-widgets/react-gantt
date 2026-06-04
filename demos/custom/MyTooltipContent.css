@@ -1,10 +1,10 @@
-.data.wx-SfydHtKO {
+.data {
   white-space: nowrap;
   background-color: var(--wx-tooltip-background);
   padding: 3px 8px;
 }
 
-.text.wx-SfydHtKO {
+.text {
   font-family: var(--wx-font-family);
   color: var(--wx-color-primary-font);
   font-size: 13px;
@@ -12,10 +12,10 @@
   margin-bottom: 5px;
 }
 
-.text:last-child.wx-SfydHtKO {
+.text:last-child {
   margin-bottom: 0;
 }
 
-.caption.wx-SfydHtKO {
+.caption {
   font-weight: 700;
 }

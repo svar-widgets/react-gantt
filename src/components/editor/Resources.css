@@ -1,0 +1,17 @@
+.wx-section.wx-aabce6pu {
+  margin-bottom: 10px;
+}
+
+.wx-nodata.wx-aabce6pu {
+  color: var(--wx-gantt-icon-color);
+  margin-top: 8px;
+}
+.wx-button-wrapper.wx-aabce6pu {
+  margin-top: 12px;
+  width: 100%;
+}
+.wx-button-wrapper.wx-aabce6pu .wx-button {
+  width: 100% !important;
+  background-color: inherit;
+  border: var(--wx-table-cell-border);
+}

@@ -17,6 +17,15 @@
   border-bottom: var(--wx-gantt-border);
 }
 
+.wx-cell-value.wx-ZkvhDKir {
+  position: sticky;
+  left: 0px;
+  right: 0px;
+  padding-left: 12px;
+  padding-right: 12px;
+  background-color: var(--wx-background);
+}
+
 .wx-cell.wx-ZkvhDKir {
   justify-content: center;
   align-items: center;

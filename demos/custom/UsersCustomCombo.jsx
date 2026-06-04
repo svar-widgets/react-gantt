@@ -1,5 +1,5 @@
 import { Combo } from '@svar-ui/react-core';
-import UserStub from './UserStub.jsx';
+import AvatarCell from './AvatarCell.jsx';
 
 function UsersCustomCombo(props) {
   const { value, options, onChange } = props;
@@ -12,7 +12,7 @@ function UsersCustomCombo(props) {
       clear
       placeholder="Assign to the person"
     >
-      {({ option }) => <UserStub user={option} />}
+      {({ option }) => <AvatarCell user={option} />}
     </Combo>
   );
 }

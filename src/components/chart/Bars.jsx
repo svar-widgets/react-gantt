@@ -33,7 +33,7 @@ function Bars(props) {
   const rRollups = useStore(api, '_rollups');
   const focusTaskStore = useStore(api, 'focusTask');
   const criticalPath = useStore(api, 'criticalPath');
-  const tree = useStore(api, 'tasks');
+  const tree = useStore(api, 'tree');
   const schedule = useStore(api, 'schedule');
   const splitTasks = useStore(api, 'splitTasks');
   const summary = useStore(api, 'summary');
@@ -49,6 +49,11 @@ function Bars(props) {
   const lengthUnitWidth = useMemo(
     () => scalesValue.lengthUnitWidth,
     [scalesValue],
+  );
+
+  const hasDuplicatedIds = useMemo(
+    () => tasks.some((task) => task.$id && task.$id !== task.id),
+    [tasks],
   );
 
   const ignoreNextClickRef = useRef(false);
@@ -524,7 +529,7 @@ function Bars(props) {
     return {
       left: `${task.$x_slack}px`,
       top: `${task.$y}px`,
-      width: `${task.$w_slack}px`,
+      width: `${Math.max(task.$w_slack, 0)}px`,
       height: `${task.$h}px`,
     };
   }, []);
@@ -662,10 +667,10 @@ function Bars(props) {
                 className={'wx-GKbcLEGA ' + barClass}
                 style={taskStyle(task)}
                 data-id={setID(task.id)}
-                data-tooltip-id={setID(task.id)}
+                data-task-id={setID(task.id)}
                 tabIndex={focused === task.id ? 0 : -1}
               >
-                {!readonly ? (
+                {!readonly && !hasDuplicatedIds ? (
                   task.id === selectedLink?.target &&
                     selectedLink?.type[2] === 's' ? (
                     <Button
@@ -722,7 +727,7 @@ function Bars(props) {
                   </>
                 )}
 
-                {!readonly ? (
+                {!readonly && !hasDuplicatedIds ? (
                   task.id === selectedLink?.target &&
                     selectedLink?.type[2] === 'e' ? (
                     <Button

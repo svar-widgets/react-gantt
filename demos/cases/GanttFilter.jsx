@@ -27,7 +27,9 @@ function GanttFilter({ skinSettings }) {
   }
 
   function reload() {
-    setTasks([...data.tasks]);
+    const next = [...data.tasks];
+    if (api.serialize().length === data.tasks.length) next.pop();
+    setTasks(next);
     setText('');
   }
 

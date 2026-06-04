@@ -16,6 +16,7 @@ import '@svar-ui/react-toolbar/style.css';
 import '@svar-ui/react-comments/style.css';
 import '@svar-ui/react-tasklist/style.css';
 import '@svar-ui/react-filter/style.css';
+import '@svar-ui/react-excel-import/style.css';
 
 const skins = [
   { id: 'willow', label: 'Willow', Component: Willow, icon: WillowIcon },
@@ -28,6 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       publicName="Gantt"
       skins={skins}
       productTag="gantt"
+      productLink="gantt"
       Globals={Globals}
       Button={Button}
       Segmented={Segmented}

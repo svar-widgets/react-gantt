@@ -18,14 +18,7 @@ import TimeScales from './TimeScale.jsx';
 import { useRenderTime } from '../../helpers/debug.js';
 
 function Chart(props) {
-  const {
-    readonly,
-    fullWidth,
-    fullHeight,
-    taskTemplate,
-    cellBorders,
-    highlightTime,
-  } = props;
+  const { readonly, fullWidth, fullHeight, taskTemplate } = props;
 
   const api = useContext(storeContext);
 
@@ -33,9 +26,16 @@ function Chart(props) {
   const rScrollTop = useStore(api, 'scrollTop');
   const rScrollLeft = useStore(api, 'scrollLeft');
   const cellHeight = useStore(api, 'cellHeight');
+  const rTasks = useStore(api, '_tasks');
+  const resources = useStore(api, 'resources');
   const scales = useStore(api, '_scales');
-  const markers = useStore(api, '_markers');
+  const area = useStore(api, 'area');
+  const groupBy = useStore(api, 'groupBy');
+  const xArea = useStore(api, 'xArea');
   const zoom = useStore(api, 'zoom');
+  const calendars = useStore(api, '_calendars');
+  const markers = useStore(api, '_markers');
+  const highlightTime = useStore(api, 'highlightTime');
 
   const [chartHeight, setChartHeight] = useState();
   const chartRef = useRef(null);
@@ -78,30 +78,19 @@ function Chart(props) {
   }, [rScrollTop, rScrollLeft]);
 
   const onScroll = () => {
-    setScroll();
-    dataRequest();
-  };
-
-  function setScroll() {
     const el = chartRef.current;
     if (!el) return;
-    const ev = {};
-    //prevents infinite scroll
-    if (el.scrollTop !== expectedScroll.current.top) ev.top = el.scrollTop;
-    if (el.scrollLeft !== expectedScroll.current.left) ev.left = el.scrollLeft;
-    if (!Object.keys(ev).length) return;
-    // set expectedScroll so that rapid scroll events don't re-dispatch stale values
-    if (ev.top !== undefined) expectedScroll.current.top = ev.top;
-    if (ev.left !== undefined) expectedScroll.current.left = ev.left;
-    isUserScrollRef.current = true;
-    api.exec('scroll-chart', ev);
-  }
+    if (el.scrollLeft !== expectedScroll.current.left) {
+      expectedScroll.current.left = el.scrollLeft;
+      isUserScrollRef.current = true;
+      api.exec('scroll-chart', { left: el.scrollLeft });
+    }
+  };
 
   function dataRequest() {
-    const el = chartRef.current;
     const clientHeightLocal = chartHeight || 0;
     const num = Math.ceil(clientHeightLocal / (cellHeight || 1)) + 1;
-    const pos = Math.floor(((el && el.scrollTop) || 0) / (cellHeight || 1));
+    const pos = Math.floor((rScrollTop || 0) / (cellHeight || 1));
     const start = Math.max(0, pos - extraRows);
     const end = pos + num + extraRows;
     const from = start * (cellHeight || 0);
@@ -114,7 +103,7 @@ function Chart(props) {
 
   useEffect(() => {
     dataRequest();
-  }, [chartHeight]);
+  }, [rScrollTop, chartHeight, cellHeight]);
 
   const lastWheelTimeRef = useRef(performance.now());
   const pendingRef = useRef(false);
@@ -159,7 +148,7 @@ function Chart(props) {
   }, [zoom, api]);
 
   function getHoliday(cell) {
-    const style = highlightTime(cell.date, cell.unit);
+    const style = highlightTime?.(cell.date, cell.unit);
     if (style)
       return {
         css: style,
@@ -169,12 +158,98 @@ function Chart(props) {
   }
 
   const holidays = useMemo(() => {
-    return scales &&
-      (scales.minUnit === 'hour' || scales.minUnit === 'day') &&
-      highlightTime
-      ? scales.rows[scales.rows.length - 1].cells.map(getHoliday)
-      : null;
-  }, [scales, highlightTime]);
+    if (
+      (scales.minUnit !== 'hour' && scales.minUnit !== 'day') ||
+      !highlightTime
+    )
+      return null;
+    const cells = scales.rows[scales.rows.length - 1].cells;
+    return cells.slice(xArea.start, xArea.end).map(getHoliday);
+  }, [scales, highlightTime, xArea]);
+
+  const timelineCells = useMemo(() => {
+    const row = scales.rows[scales.rows.length - 1];
+    const cells = row?.cells;
+    return (scales.minUnit === 'hour' || scales.minUnit === 'day') && cells
+      ? cells.slice(xArea.start, xArea.end)
+      : [];
+  }, [scales, xArea]);
+
+  const visibleTasks = useMemo(
+    () => rTasks.slice(area.start, area.end),
+    [rTasks, area],
+  );
+
+  function getRowCalendars(task) {
+    if (groupBy?.field === 'resource') {
+      if (task.$resource) {
+        const calendar = api.getResourceCalendar(task);
+        return calendar ? [calendar] : [];
+      }
+
+      const groupValue = task.$groupValue;
+      if (groupValue === undefined || groupValue === '$ungrouped') return [];
+
+      const resourceIds = Array.isArray(groupValue) ? groupValue : [groupValue];
+
+      return resourceIds.flatMap((id) => {
+        const resource = resources?.byId(id);
+        if (!resource) return [];
+        const calendar = api.getResourceCalendar(resource);
+        return calendar ? [calendar] : [];
+      });
+    }
+
+    const calendar = task.calendar ? api.getTaskCalendar(task) : undefined;
+    return calendar ? [calendar] : [];
+  }
+
+  const rowHighlights = useMemo(() => {
+    const result = [];
+    if (!calendars) return result;
+    const globalCalendar = api.getCalendar();
+    visibleTasks.forEach((task, index) => {
+      const rowCalendars = getRowCalendars(task);
+      if (!rowCalendars.length) return;
+      timelineCells.forEach((cell, cellIndex) => {
+        const nonWorkingCalendars = rowCalendars.filter(
+          (cal) => !cal.isWorkingDay(cell.date),
+        );
+        const isRowWorkingDay = nonWorkingCalendars.length === 0;
+        const isGlobalHoliday =
+          globalCalendar && !globalCalendar.isWorkingDay(cell.date);
+
+        const cellConfig = {
+          width: cell.width,
+          height: cellHeight,
+          left: (cellIndex + xArea.start) * cell.width,
+          top: area.from + index * cellHeight,
+        };
+
+        let css = '';
+        if (!isRowWorkingDay) {
+          const extra = nonWorkingCalendars
+            .map((cal) => cal.css)
+            .filter(Boolean);
+          css = ['wx-weekend', ...extra].join(' ');
+        }
+        if (isRowWorkingDay && isGlobalHoliday) css = 'wx-weekend-override';
+
+        if (css) result.push({ ...cellConfig, css });
+      });
+    });
+    return result;
+  }, [
+    calendars,
+    visibleTasks,
+    timelineCells,
+    cellHeight,
+    xArea,
+    area,
+    groupBy,
+    resources,
+    api,
+  ]);
 
   const handleHotkey = useCallback(
     (ev) => {
@@ -227,7 +302,7 @@ function Chart(props) {
   }, [onWheel]);
 
   useRenderTime("chart");
-  
+
   return (
     <div
       className="wx-mR7v2Xag wx-chart"
@@ -235,7 +310,7 @@ function Chart(props) {
       ref={chartRef}
       onScroll={onScroll}
     >
-      <TimeScales highlightTime={highlightTime} scales={scales} />
+      <TimeScales api={api} />
       {markers && markers.length ? (
         <div
           className="wx-mR7v2Xag wx-markers"
@@ -269,7 +344,7 @@ function Chart(props) {
                   className={'wx-mR7v2Xag ' + holiday.css}
                   style={{
                     width: `${holiday.width}px`,
-                    left: `${i * holiday.width}px`,
+                    left: `${xArea.from + i * holiday.width}px`,
                   }}
                 />
               ) : null,
@@ -277,7 +352,20 @@ function Chart(props) {
           </div>
         ) : null}
 
-        <CellGrid borders={cellBorders} />
+        {rowHighlights.map((row, index) => (
+          <div
+            key={index}
+            className={'wx-mR7v2Xag ' + row.css}
+            style={{
+              position: 'absolute',
+              pointerEvents: 'none',
+              width: `${row.width}px`,
+              height: `${row.height}px`,
+              left: `${row.left}px`,
+              top: `${row.top}px`,
+            }}
+          />
+        ))}
 
         {selected && selected.length
           ? selected.map((obj, index) =>
@@ -291,6 +379,8 @@ function Chart(props) {
               ) : null,
             )
           : null}
+
+        <CellGrid />
 
         <Bars readonly={readonly} taskTemplate={taskTemplate} />
       </div>

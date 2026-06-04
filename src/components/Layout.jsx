@@ -7,23 +7,16 @@ import {
   useContext,
 } from 'react';
 import { hotkeys } from '@svar-ui/grid-store';
+import { useStore, useWritableProp } from '@svar-ui/lib-react';
 import Grid from './grid/Grid.jsx';
 import Chart from './chart/Chart.jsx';
 import Resizer from './Resizer.jsx';
-import { modeObserver } from '../helpers/modeResizeObserver';
 import storeContext from '../context';
-import { useStore } from '@svar-ui/lib-react';
 import './Layout.css';
-import { flushSync } from 'react-dom'
+import { flushSync } from 'react-dom';
 
 function Layout(props) {
-  const {
-    taskTemplate,
-    readonly,
-    cellBorders,
-    highlightTime,
-    onTableAPIChange,
-  } = props;
+  const { taskTemplate, readonly, onTableAPIChange, onGanttWidthChange } = props;
 
   const api = useContext(storeContext);
 
@@ -31,59 +24,14 @@ function Layout(props) {
   const rScales = useStore(api, '_scales');
   const rCellHeight = useStore(api, 'cellHeight');
   const rColumns = useStore(api, 'columns');
+  const rScrollTop = useStore(api, 'scrollTop');
   const undo = useStore(api, 'undo');
-  const [compactMode, setCompactMode] = useState(false);
-  let [gridWidth, setGridWidth] = useState(0);
-  const [ganttWidth, setGanttWidth] = useState(0);
+  const gridWidth = useStore(api, 'gridWidth');
+  const columnsWidth = useStore(api, '_columnsWidth');
+
+  const [ganttWidth, setGanttWidth] = useWritableProp(props.ganttWidth);
   const [ganttHeight, setGanttHeight] = useState(0);
   const [innerWidth, setInnerWidth] = useState(undefined);
-  const [display, setDisplay] = useState('all');
-
-  const lastDisplay = useRef(null);
-
-  const handleResize = useCallback(
-    (mode) => {
-      setCompactMode((prev) => {
-        if (mode !== prev) {
-          if (mode) {
-            lastDisplay.current = display;
-            if (display === 'all') setDisplay('grid');
-          } else if (!lastDisplay.current || lastDisplay.current === 'all') {
-            setDisplay('all');
-          }
-        }
-        return mode;
-      });
-    },
-    [display],
-  );
-
-  useEffect(() => {
-    const ro = modeObserver(handleResize);
-    ro.observe();
-    return () => {
-      ro.disconnect();
-    };
-  }, [handleResize]);
-
-  const gridColumnWidth = useMemo(() => {
-    let w;
-    if (rColumns.every((c) => c.width && !c.flexgrow)) {
-      w = rColumns.reduce((acc, c) => acc + parseInt(c.width), 0);
-    } else {
-      if (display === 'chart') {
-        w = parseInt(rColumns.find((c) => c.id === 'action')?.width) || 50;
-      } else {
-        w = 440;
-      }
-    }
-    gridWidth = w;
-    return w;
-  }, [rColumns, display]);
-
-  useEffect(() => {
-    setGridWidth(gridColumnWidth);
-  }, [gridColumnWidth]);
 
   const scrollSize = useMemo(
     () => (ganttWidth ?? 0) - (innerWidth ?? 0),
@@ -98,6 +46,7 @@ function Layout(props) {
     () => rScales.height + fullHeight + scrollSize,
     [rScales, fullHeight, scrollSize],
   );
+
   const chartRef = useRef(null);
 
   const latestLayout = useRef({
@@ -119,9 +68,15 @@ function Layout(props) {
   }, [ganttWidth, gridWidth, ganttHeight, rScales, scrollSize]);
 
   const chartResizeHandler = useCallback(() => {
-    const { ganttWidth: gw, gridWidth: grw, ganttHeight: gh, rScalesHeight: sh, scrollSize: ss } = latestLayout.current;
+    const {
+      ganttWidth: gw,
+      gridWidth: grw,
+      ganttHeight: gh,
+      rScalesHeight: sh,
+      scrollSize: ss,
+    } = latestLayout.current;
     api.exec('resize-chart', {
-      width: gw - grw,
+      width: gw - grw - ss - 4,
       height: gh - sh,
       scrollSize: ss,
     });
@@ -140,10 +95,14 @@ function Layout(props) {
 
   const ganttDivRef = useRef(null);
   const pseudoRowsRef = useRef(null);
+  const expectedScrollTop = useRef(null);
+  const isUserScrollRef = useRef(false);
 
   const onScroll = useCallback(() => {
     const el = ganttDivRef.current;
-    if (el) {
+    if (el && el.scrollTop !== expectedScrollTop.current) {
+      expectedScrollTop.current = el.scrollTop;
+      isUserScrollRef.current = true;
       api.exec('scroll-chart', {
         top: el.scrollTop,
       });
@@ -165,6 +124,26 @@ function Layout(props) {
     ro.observe(ganttDiv);
     return () => ro.disconnect();
   }, [ganttDivRef.current]);
+
+  useEffect(() => {
+    if (onGanttWidthChange) onGanttWidthChange(ganttWidth);
+  }, [ganttWidth, onGanttWidthChange]);
+
+  useEffect(() => {
+    const ganttDiv = ganttDivRef.current;
+    if (!ganttDiv) return;
+    // change originated from the user's own scroll — don't write it back,
+    // otherwise we re-trigger onScroll and loop (see Layout.svelte FIXME)
+    if (isUserScrollRef.current) {
+      isUserScrollRef.current = false;
+      return;
+    }
+    // only programmatic scrolls (scrollToTask, etc.) reach here
+    if (rScrollTop !== ganttDiv.scrollTop) {
+      expectedScrollTop.current = rScrollTop;
+      ganttDiv.scrollTop = rScrollTop;
+    }
+  }, [rScrollTop]);
 
   const layoutRef = useRef(null);
   const cleanupRef = useRef(null);
@@ -216,22 +195,12 @@ function Layout(props) {
             {rColumns.length ? (
               <>
                 <Grid
-                  display={display}
-                  compactMode={compactMode}
-                  columnWidth={gridColumnWidth}
-                  width={gridWidth}
+                  columnWidth={columnsWidth}
                   readonly={readonly}
                   fullHeight={fullHeight}
                   onTableAPIChange={onTableAPIChange}
                 />
-                <Resizer
-                  value={gridWidth}
-                  display={display}
-                  compactMode={compactMode}
-                  containerWidth={ganttWidth}
-                  onMove={(value) => setGridWidth(value)}
-                  onDisplayChange={(display) => setDisplay(display)}
-                />
+                <Resizer containerWidth={ganttWidth} api={api} />
               </>
             ) : null}
 
@@ -241,8 +210,6 @@ function Layout(props) {
                 fullWidth={fullWidth}
                 fullHeight={fullHeight}
                 taskTemplate={taskTemplate}
-                cellBorders={cellBorders}
-                highlightTime={highlightTime}
               />
             </div>
           </div>

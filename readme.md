@@ -16,17 +16,17 @@ The component supports multiple task types, dependencies, custom time scales, an
 
 <div align="center">
 <img src="https://svar.dev/images/github/basic-gantt-react.gif" alt="SVAR React Gantt UI">
-</div>
+</div><br>
 
 Interactive, drag-and-drop interface allows users to add, edit, and organize tasks and dependencies directly on the timeline or through a simple task edit form.
 
 ### ✨ Core Features
 
+- Task and dependency visualization
 - Interactive timeline with drag-and-drop
 - Customizable task edit form
-- Task dependencies
-- Task progress visualization
-- Hierarchical view of sub tasks
+- Task progress shown on taskbars
+- Hierarchical view of subtasks
 - Configurable time scale (hours, days, weeks, sprints or stages)
 - Flexible time units: support for hours and minutes
 - Customizable grid columns
@@ -36,24 +36,30 @@ Interactive, drag-and-drop interface allows users to add, edit, and organize tas
 - Tooltips for taskbars
 - Zooming with scroll
 - Hotkey support for common actions
-- Fast performance with large data sets
+- Virtualization for large data sets
 - Localization
 - Full TypeScript support
 
 ### 🚀 PRO Edition
 
-In addition to free, open-source core, SVAR React Gantt offers the PRO Edition with additional features and automation logic:
+In addition to free, open-source core, SVAR React Gantt offers the PRO edition with additional features and automation logic:
 
-- Work days calendar (non-linear calendar)
-- Auto-scheduling (forward mode and Finish-to-Start dependencies)
+- Work-time calendar (non-linear calendar)
+- Calendars for individual tasks or resources
 - Critical path
 - Slack (float) visualization
-- Rollups
 - Baselines
+- Resource planning
+- Resource workload visualization
+- Task grouping
+- Auto-scheduling (forward mode and Finish-to-Start dependencies)
+- Summary task automation
+- Unscheduled tasks
+- Rollups
 - Split tasks
 - Vertical markers
+- WBS codes support
 - Undo/redo
-- Summary task automation
 - Export to PNG, PDF, Excel, and MS Project (export/import)
 
 Visit the [pricing page](https://svar.dev/react/gantt/pricing/) for full feature comparison and free trial.
@@ -97,6 +103,11 @@ export default function MyComponent() {
 ```
 
 See the [getting started guide](https://docs.svar.dev/react/gantt/getting_started/) to learn how to configure data sources, customize columns, and enable editing.
+
+You'll also find integration guides for:
+
+- [Next.js demo](https://github.com/svar-widgets/react-gantt-demo-nextjs) & [guide](https://docs.svar.dev/react/gantt/category/nextjs/)
+- State management: [Redux](https://docs.svar.dev/react/gantt/integration-guides/integration-redux/), [Zustand](https://docs.svar.dev/react/gantt/integration-guides/integration-zustand/), [MobX](https://docs.svar.dev/react/gantt/integration-guides/integration-mobx/), [XState](https://docs.svar.dev/react/gantt/integration-guides/integration-xstate/), [Jotai](https://docs.svar.dev/react/gantt/integration-guides/integration-jotai/)
 
 ### ⭐ Show Your Support
 

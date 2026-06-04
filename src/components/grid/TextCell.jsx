@@ -1,4 +1,5 @@
 import './TextCell.css';
+import GroupCellText from './GroupCellText.jsx';
 
 function TextCell({ row, column }) {
   function getStyle(row, col) {
@@ -12,7 +13,7 @@ function TextCell({ row, column }) {
 
   return (
     <div className="wx-pqc08MHU wx-content" style={getStyle(row, column)}>
-      {!row.$empty && (row.data || row.lazy) ? (
+      {!row.$empty && (row.data?.length || row.lazy) ? (
         <i
           className={`wx-pqc08MHU wx-toggle-icon wxi-menu-${row.open ? 'down' : 'right'}`}
           data-action="open-task"
@@ -21,7 +22,13 @@ function TextCell({ row, column }) {
         <i className="wx-pqc08MHU wx-toggle-placeholder" />
       )}
       <div className="wx-pqc08MHU wx-text">
-        {CellComponent ? <CellComponent row={row} column={column} /> : row.text}
+        {CellComponent ? (
+          <CellComponent row={row} column={column} />
+        ) : row.$group ? (
+          <GroupCellText row={row} />
+        ) : (
+          row.text
+        )}
       </div>
     </div>
   );

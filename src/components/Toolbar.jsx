@@ -19,6 +19,7 @@ export default function Toolbar({ api = null, items = [] }) {
   const undo = useStoreLater(api, 'undo');
   const history = useStoreLater(api, 'history');
   const splitTasks = useStoreLater(api, 'splitTasks');
+  const groupBy = useStoreLater(api, 'groupBy');
 
   const historyActions = ['undo', 'redo'];
 
@@ -29,6 +30,7 @@ export default function Toolbar({ api = null, items = [] }) {
       : getToolbarButtons({
           undo,
           splitTasks,
+          group: !!groupBy?.field,
         });
     return buttons.map((b) => {
       let item = { ...b, disabled: false };
@@ -39,22 +41,31 @@ export default function Toolbar({ api = null, items = [] }) {
       if (item.menuText) item.menuText = _(item.menuText);
       return item;
     });
-  }, [items, api, _, undo, splitTasks]);
+  }, [items, api, _, undo, splitTasks, groupBy]);
 
   const buttons = useMemo(() => {
     const finalButtons = [];
     finalItems.forEach((item) => {
       const action = item.id;
-      if (action === 'add-task') {
-        finalButtons.push(item);
-      } else if (!historyActions.includes(action)) {
-        if (!_selected?.length || !api) return;
-        finalButtons.push({
-          ...item,
-          disabled:
-            item.isDisabled &&
-            _selected.some((task) => item.isDisabled(task, api.getState())),
-        });
+
+      if (action === 'add-task' || !historyActions.includes(action)) {
+        if (!_selected?.length || !api) {
+          if (action !== 'add-task') return;
+          finalButtons.push(item);
+        } else {
+          finalButtons.push({
+            ...item,
+            disabled:
+              item.isDisabled &&
+              _selected.some((task) =>
+                item.isDisabled(
+                  task,
+                  api.getState(),
+                  api.getTaskCalendar(task)
+                )
+              ),
+          });
+        }
       } else if (historyActions.includes(action)) {
         finalButtons.push({
           ...item,

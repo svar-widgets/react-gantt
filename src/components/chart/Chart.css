@@ -63,3 +63,7 @@
   color: var(--wx-gantt-holiday-color);
   position: absolute;
 }
+
+.wx-weekend-override.wx-mR7v2Xag {
+  background: var(--wx-background);
+}

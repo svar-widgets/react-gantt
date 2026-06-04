@@ -1,0 +1,180 @@
+.wx-resource-load.wx-aacPnv3E {
+  height: 100%;
+  width: 100%;
+  background-color: var(--wx-background);
+}
+
+.wx-layout.wx-aacPnv3E {
+  position: relative;
+  display: flex;
+  background-color: var(--wx-background);
+  overflow: hidden;
+  outline: none;
+  height: 100%;
+}
+
+.wx-chart.wx-aacPnv3E {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  outline: none;
+}
+
+.wx-timescale-viewport.wx-aacPnv3E {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+/* match right grid body width when it has a V scrollbar — else timescales
+   shows cells past the right grid's last visible column at horizontal-max */
+.wx-timescale-viewport.wx-v-scroll-reserve.wx-aacPnv3E {
+  box-sizing: border-box;
+  padding-right: var(--wx-scrollbar-width);
+}
+
+.wx-grid-container.wx-aacPnv3E {
+  display: flex;
+  flex-direction: column;
+  border-right: var(--wx-gantt-border);
+  height: 100%;
+  box-sizing: content-box;
+  overflow: hidden;
+}
+.wx-y-bar-clip.wx-aacPnv3E {
+  width: 100%;
+  height: 100%;
+}
+/* extend by one scrollbar width so Grid's Y scrollbar gets clipped by
+   wx-grid-container; --wx-scrollbar-width is set inline from JS */
+.wx-grid-container.wx-y-scroll.wx-aacPnv3E .wx-y-bar-clip {
+  width: calc(100% + var(--wx-scrollbar-width));
+}
+/* shrink left body so rows align with right grid's when only right H-scrolls;
+   gate (rightHasHScroll && !leftHasHScroll) skips this when left has its own */
+.wx-grid-container.wx-h-scroll-reserve.wx-aacPnv3E .wx-y-bar-clip {
+  height: calc(100% - var(--wx-scrollbar-width));
+}
+
+.wx-grid-scale-container.wx-aacPnv3E {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+/*table*/
+.wx-grid-scale-container.wx-aacPnv3E,
+.wx-resource-grid.wx-aacPnv3E {
+  box-sizing: content-box;
+  height: 100%;
+  --wx-table-select-background: var(--wx-gantt-select-color);
+  --wx-table-select-focus-background: var(--wx-gantt-select-color);
+  --wx-table-select-border: none;
+  --wx-table-cell-border: var(--wx-grid-body-row-border);
+  --wx-table-header-background: var(--wx-background);
+  --wx-table-header-border: var(--wx-gantt-border);
+  --wx-table-header-cell-border: var(--wx-gantt-border);
+}
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-header {
+  display: none;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-table-box,
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-table-box {
+  border: none;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid,
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid {
+  font: var(--wx-grid-body-font);
+  color: var(--wx-grid-body-font-color);
+}
+/*body*/
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-cell {
+  padding: 0 5px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-row {
+  display: flex;
+  align-items: center;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-cell.wx-text-center {
+  justify-content: center;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-cell.wx-text-right {
+  justify-content: end;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-body .wx-cell {
+  border-right: var(--wx-grid-body-cell-border);
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-cell:has(input, .wx-value) {
+  height: 100%;
+  padding: 0;
+}
+.wx-grid-scale-container.wx-aacPnv3E .wx-row.wx-column-border:not(:last-child),
+.wx-grid-scale-container.wx-aacPnv3E .wx-row.wx-column-border:last-child {
+  border-bottom: none;
+}
+/*header*/
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header {
+  box-shadow: var(--wx-grid-header-shadow);
+  z-index: 1;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header .wx-cell {
+  font: var(--wx-grid-header-font);
+  text-transform: var(--wx-grid-header-text-transform);
+  color: var(--wx-grid-header-font-color);
+  padding: 0 5px;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header .wx-cell:first-child {
+  padding-left: 14px;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header .wx-cell .wx-text {
+  width: 100%;
+}
+.wx-resource-grid.wx-aacPnv3E
+  .wx-grid
+  .wx-header
+  .wx-cell:has(.wx-sort)
+  .wx-text {
+  width: calc(100% - 15px);
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header .wx-cell.wx-text-right {
+  text-align: right;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header .wx-cell.wx-text-center {
+  text-align: center;
+  padding-left: 5px;
+}
+.wx-resource-grid.wx-aacPnv3E
+  .wx-grid
+  .wx-header
+  .wx-cell.wx-text-right.wx-action {
+  justify-content: right;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header .wx-action i {
+  font-size: var(--wx-icon-size);
+  color: var(--wx-gantt-icon-color);
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header .wx-action .wx-text {
+  display: none;
+}
+.wx-resource-grid.wx-aacPnv3E .wx-grid .wx-header .wx-action i:hover {
+  color: var(--wx-color-link);
+}
+
+/*cell*/
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-cell.wx-weekend {
+  background: var(--wx-gantt-holiday-background);
+  color: var(--wx-gantt-holiday-color);
+}
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-cell.wx-normal {
+  background: var(--wx-gantt-load-normal-color);
+}
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-cell.wx-overload {
+  background: var(--wx-gantt-load-danger-color);
+}
+/* override load cell background for selected rows */
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-row.wx-selected .wx-cell {
+  background: var(--wx-table-select-background);
+}

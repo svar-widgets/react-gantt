@@ -1,151 +1,92 @@
-import { useState, useEffect, useRef } from 'react';
-import { locateID, getID } from '@svar-ui/lib-dom';
-import './Tooltip.css';
+import { Tooltip } from '@svar-ui/react-core';
+import { getID, locateID } from '@svar-ui/lib-dom';
 
-function Tooltip(props) {
-  const { api, content: Content, children } = props;
+function GanttTooltip(props) {
+  const {
+    api,
+    at = 'point',
+    overflow = false,
+    content: Content,
+    resolver,
+    ...restProps
+  } = props;
 
-  const areaRef = useRef(null);
-  const tooltipNodeRef = useRef(null);
+  function defaultResolver(element, ev) {
+    if (!api) return null;
 
-  const [areaCoords, setAreaCoords] = useState({});
-  const [contentProps, setContentProps] = useState({});
-  const [pos, setPos] = useState({});
-  const posRef = useRef(pos);
-  posRef.current = pos;
-
-  function findAttribute(node) {
-    const trg = node;
-    while (node) {
-      if (node.getAttribute) {
-        const id = getID(node, 'data-tooltip-id');
-        const at = getID(node, 'data-tooltip-at');
-        const tooltip = node.getAttribute('data-tooltip');
-        if (id || tooltip) {
-          const segment = locateID(trg, 'data-segment');
-          return { id, tooltip, target: node, at, segment };
+    // (1) Match against tasks / segments
+    const taskId = getID(element, 'data-task-id');
+    if (taskId) {
+      const task = api.getTask(taskId);
+      if (!task) return null;
+      if (overflow) {
+        const node = element.querySelector('.wx-content');
+        if (node && node.scrollWidth <= node.clientWidth) return null;
+      }
+      const segmentIndex = locateID(ev.target, 'data-segment');
+      if (Content) {
+        return { api, data: { task, segmentIndex } };
+      } else {
+        if (segmentIndex !== null) {
+          return task.segments?.[segmentIndex]?.text ?? '';
+        } else {
+          return task.text ?? '';
         }
       }
-      node = node.parentNode;
     }
 
-    return { id: null, tooltip: null, target: null, at: null, segment: null };
-  }
-
-  useEffect(() => {
-    const tooltipNode = tooltipNodeRef.current;
-    const currentPos = posRef.current;
-    if (tooltipNode && currentPos && (currentPos.text || Content)) {
-      const tooltipCoords = tooltipNode.getBoundingClientRect();
-
-      let updated = false;
-      let newLeft = currentPos.left;
-      let newTop = currentPos.top;
-
-      if (tooltipCoords.right >= areaCoords.right) {
-        newLeft = areaCoords.width - tooltipCoords.width - 5;
-        updated = true;
-      }
-      if (tooltipCoords.bottom >= areaCoords.bottom) {
-        newTop = currentPos.top - (tooltipCoords.bottom - areaCoords.bottom + 2);
-        updated = true;
-      }
-
-      if (updated) {
-        setPos((prev) => {
-          if (!prev) return prev;
-          return { ...prev, left: newLeft, top: newTop };
-        });
-      }
-    }
-  }, [areaCoords, Content]);
-
-  const timerRef = useRef(null);
-  const TIMEOUT = 300;
-  const debounce = (code) => {
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      code();
-    }, TIMEOUT);
-  };
-
-  function move(e) {
-    let { id, tooltip, target, at, segment } = findAttribute(e.target);
-    setPos(null);
-    setContentProps({});
-
-    if (!tooltip) {
-      if (!id) {
-        clearTimeout(timerRef.current);
-        return;
+    // (2) Match against links
+    const linkId = getID(element, 'data-link-id');
+    if (linkId) {
+      const state = api.getState();
+      const link = state.links.byId(linkId);
+      if (!link) return null;
+      if (Content) {
+        return { api, data: { link } };
       } else {
-        tooltip = getTaskText(id, segment);
+        return null;
       }
     }
 
-    const clientX = e.clientX;
-
-    debounce(() => {
-      if (id) {
-        const props = { data: getTaskObj(id) };
-        if (segment != null) props.segmentIndex = segment;
-        setContentProps(props);
-      }
-
-      const targetCoords = target.getBoundingClientRect();
-      const areaEl = areaRef.current;
-      const areaRect = areaEl
-        ? areaEl.getBoundingClientRect()
-        : { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 };
-
-      let top, left;
-      if (at === 'left') {
-        top = targetCoords.top + 5 - areaRect.top;
-        left = targetCoords.right + 5 - areaRect.left;
+    // (3) Match against rollups
+    const rollupId = getID(element, 'data-rollup-id');
+    if (rollupId) {
+      const task = api.getTask(rollupId);
+      if (!task) return null;
+      if (Content) {
+        return { api, data: { rollup: task } };
       } else {
-        top = targetCoords.top + targetCoords.height - areaRect.top;
-        left = clientX - areaRect.left;
+        return task.text ?? '';
       }
+    }
 
-      setAreaCoords(areaRect);
-      setPos({ top, left, text: tooltip });
-    });
-  }
+    // (4) Match against resources
+    const resourceId = getID(element, 'data-resource-id');
+    if (resourceId) {
+      const resource = api.getResource(resourceId);
+      if (!resource) return null;
+      if (Content) {
+        return {
+          api,
+          data: { resource },
+        };
+      } else {
+        return resource.name ?? '';
+      }
+    }
 
-  function getTaskObj(id) {
-    return api?.getTask(id) || null;
-  }
-
-  function getTaskText(id, segment) {
-    const task = getTaskObj(id);
-    if (segment !== null && task?.segments)
-      return task.segments[segment]?.text || '';
-    return task?.text || '';
+    // (5) No match, continue
+    return null;
   }
 
   return (
-    <div
-      className="wx-KG0Lwsqo wx-tooltip-area"
-      ref={areaRef}
-      onMouseMove={move}
-    >
-      {pos && (pos.text || Content) ? (
-        <div
-          className="wx-KG0Lwsqo wx-gantt-tooltip"
-          ref={tooltipNodeRef}
-          style={{ top: `${pos.top}px`, left: `${pos.left}px` }}
-        >
-          {Content ? (
-            <Content {...contentProps} />
-          ) : pos.text ? (
-            <div className="wx-KG0Lwsqo wx-gantt-tooltip-text">{pos.text}</div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {children}
-    </div>
+    <Tooltip
+      at={at}
+      content={Content}
+      resolver={resolver || defaultResolver}
+      {...restProps}
+    />
   );
 }
 
-export default Tooltip;
+export default GanttTooltip;

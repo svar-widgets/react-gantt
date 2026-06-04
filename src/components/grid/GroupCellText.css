@@ -1,0 +1,14 @@
+.wx-group-text.wx-aab2WKOu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  & .wx-avatar-root {
+    flex: 0 0 auto;
+  }
+}
+.wx-group-text.wx-aab2WKOu,
+.wx-name.wx-aab2WKOu {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}

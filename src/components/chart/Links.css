@@ -7,20 +7,28 @@
 }
 
 .wx-line.wx-dkx3NwEn {
-  user-select: auto;
-  pointer-events: stroke;
-  position: relative;
+  pointer-events: none;
+}
+
+.wx-line.wx-dkx3NwEn > .wx-line-draw {
+  pointer-events: none;
   stroke: var(--wx-gantt-link-color);
   stroke-width: 2;
-  z-index: 0;
   fill: transparent;
 }
 
-.wx-line-selectable.wx-dkx3NwEn:hover {
+.wx-line.wx-dkx3NwEn > .wx-line-hitbox {
+  pointer-events: stroke;
+  stroke: transparent;
+  stroke-width: 20;
+  fill: transparent;
+}
+
+.wx-line-selectable.wx-dkx3NwEn:hover > .wx-line-draw {
   stroke: var(--wx-gantt-link-color-hovered);
 }
 
-.wx-line-selectable.wx-critical.wx-dkx3NwEn:hover {
+.wx-line-selectable.wx-critical.wx-dkx3NwEn:hover > .wx-line-draw {
   stroke: var(--wx-gantt-link-critical-color-hovered);
 }
 
@@ -28,10 +36,10 @@
   cursor: pointer;
 }
 
-.wx-line.wx-line-selected.wx-dkx3NwEn {
+.wx-line.wx-line-selected.wx-dkx3NwEn > .wx-line-draw {
   stroke: var(--wx-color-danger);
 }
 
-.wx-critical.wx-dkx3NwEn {
+.wx-critical.wx-dkx3NwEn > .wx-line-draw {
   stroke: var(--wx-gantt-link-critical-color);
 }

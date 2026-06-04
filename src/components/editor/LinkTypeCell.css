@@ -1,0 +1,12 @@
+.wx-wrapper.wx-aadwz4ed {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+.wx-text.wx-aadwz4ed {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}

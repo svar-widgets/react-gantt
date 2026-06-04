@@ -4,7 +4,7 @@ import { Gantt, ContextMenu, Editor } from '../../src';
 
 export default function GanttProvider() {
   const restProvider = useMemo(
-    () => new RestDataProvider('https://-backend.svar.devgantt'),
+    () => new RestDataProvider('https://gantt-backend.svar.dev'),
     [],
   );
 

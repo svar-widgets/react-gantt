@@ -1,0 +1,14 @@
+.wx-avatar-box.wx-aaexf6PM {
+  display: flex;
+  align-items: center;
+}
+.wx-resource-option.wx-aaexf6PM {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.wx-name.wx-aaexf6PM {
+  margin-left: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

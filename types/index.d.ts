@@ -18,7 +18,11 @@ import type {
   IApi,
   IConfig,
   ITask,
+  ILink,
+  IResource,
   IGanttColumn,
+  IResourceColumn,
+  IResourceLoad,
 } from '@svar-ui/gantt-store';
 
 export * from '@svar-ui/gantt-store';
@@ -71,12 +75,26 @@ export declare const Editor: FC<
   }
 >;
 
+type TooltipContentData =
+  | { task: ITask; segmentIndex: number | null }
+  | { link: ILink }
+  | { rollup: ITask }
+  | { resource: IResource };
+
 export declare const Tooltip: FC<{
   content?: FC<{
-    data: ITask;
+    api: IApi;
+    data: TooltipContentData;
   }>;
   api?: IApi;
   children?: ReactNode;
+}>;
+
+export declare const ResourceLoad: FC<{
+  api?: IApi;
+  columns?: IResourceColumn[];
+  mode?: 'grid' | 'chart';
+  template?: (load: IResourceLoad) => string;
 }>;
 
 export declare const Fullscreen: FC<{

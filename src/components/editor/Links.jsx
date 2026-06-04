@@ -1,41 +1,29 @@
-import { useState, useEffect, useMemo, useContext } from 'react';
-import { Field, Combo, Text } from '@svar-ui/react-core';
+import { Fragment, useState, useEffect, useMemo, useContext } from 'react';
 import { context } from '@svar-ui/react-core';
-import { useStore } from '@svar-ui/lib-react';
+import { useStore, useStoreWithCounter } from '@svar-ui/lib-react';
+
+import ActionCell from '../grid/ActionCell.jsx';
+import GridSection from './GridSection.jsx';
+import LinkTypeCell from './LinkTypeCell.jsx';
 import './Links.css';
 
-export default function Links({ api, autoSave, onLinksChange }) {
+export default function Links({
+  api,
+  autoSave,
+  onExtChange,
+  predecessors = null,
+  successors = null,
+  batch = 'links',
+}) {
   const i18n = useContext(context.i18n);
-  const _ = i18n.getGroup('gantt');
+  const _ = useMemo(() => i18n.getGroup('gantt'), [i18n]);
 
   const activeTask = useStore(api, 'activeTask');
   const _activeTask = useStore(api, '_activeTask');
-  const links = useStore(api, '_links');
+  const [links, linksCounter] = useStoreWithCounter(api, 'links');
+  const tasks = useStore(api, 'tasks');
   const schedule = useStore(api, 'schedule');
   const unscheduledTasks = useStore(api, 'unscheduledTasks');
-
-  const [linksData, setLinksData] = useState();
-
-  function getLinksData() {
-    if (activeTask) {
-      const inLinks = links
-        .filter((a) => a.target == activeTask)
-        .map((link) => ({ link, task: api.getTask(link.source) }));
-
-      const outLinks = links
-        .filter((a) => a.source == activeTask)
-        .map((link) => ({ link, task: api.getTask(link.target) }));
-
-      return [
-        { title: _('Predecessors'), data: inLinks },
-        { title: _('Successors'), data: outLinks },
-      ];
-    }
-  }
-
-  useEffect(() => {
-    setLinksData(getLinksData());
-  }, [activeTask, links]);
 
   const list = useMemo(
     () => [
@@ -47,117 +35,205 @@ export default function Links({ api, autoSave, onLinksChange }) {
     [_],
   );
 
-  function deleteLink(id) {
-    if (autoSave) {
-      api.exec('delete-link', { id });
-    } else {
-      setLinksData((prev) =>
-        (prev || []).map((group) => ({
-          ...group,
-          data: group.data.filter((item) => item.link.id !== id),
-        })),
-      );
-      onLinksChange &&
-        onLinksChange({
-          id,
-          action: 'delete-link',
-          data: { id },
+  function lagEditorHandler(row) {
+    return row.type === 'e2s'
+      ? { type: 'text', config: { type: 'number' } }
+      : null;
+  }
+
+  const isLagHidden = useMemo(
+    () =>
+      !schedule?.auto || (unscheduledTasks && _activeTask?.unscheduled),
+    [schedule, unscheduledTasks, _activeTask],
+  );
+
+  function getColumns() {
+    return [
+      {
+        id: 'taskText',
+        header: _('Task name'),
+        flexgrow: 2,
+      },
+      {
+        id: 'lag',
+        header: _('Lag'),
+        editor: lagEditorHandler,
+        flexgrow: 1,
+        hidden: isLagHidden,
+      },
+      {
+        id: 'type',
+        header: _('Type'),
+        width: 124,
+        options: list,
+        editor: {
+          type: 'richselect',
+          config: {
+            cell: LinkTypeCell,
+          },
+        },
+        cell: LinkTypeCell,
+      },
+      {
+        id: 'delete',
+        header: '',
+        cell: ActionCell,
+        width: 50,
+        align: 'center',
+      },
+    ];
+  }
+
+  function getLinksData() {
+    if (activeTask) {
+      const il = [];
+      const ol = [];
+
+      if (!predecessors || !successors) {
+        links.forEach((l) => {
+          if (!predecessors && l.target === activeTask) il.push(l);
+          if (!successors && l.source === activeTask) ol.push(l);
         });
+      }
+
+      const inLinks =
+        predecessors ||
+        il.map((link) => {
+          const { id, lag, type, source } = link;
+          return {
+            id,
+            type,
+            lag,
+            taskText: tasks.byId(source).text,
+          };
+        });
+
+      const outLinks =
+        successors ||
+        ol.map((link) => {
+          const { id, lag, type, target } = link;
+          return {
+            id,
+            type,
+            lag,
+            taskText: tasks.byId(target).text,
+          };
+        });
+
+      return [
+        { title: _('Predecessors'), data: inLinks },
+        { title: _('Successors'), data: outLinks },
+      ];
     }
   }
 
-  function handleChange(id, update) {
+  const [linksData, setLinksData] = useState();
+
+  useEffect(() => {
+    setLinksData(getLinksData());
+  }, [activeTask, links, linksCounter, tasks, predecessors, successors]);
+
+  function onDeleteAction(id) {
+    if (autoSave) {
+      api.exec('delete-link', { id });
+    } else {
+      setLinksData((prev) => {
+        const next = (prev || []).map((group) => ({
+          ...group,
+          data: group.data.filter((item) => item.id !== id),
+        }));
+        onExtChange &&
+          onExtChange({
+            view: 'links',
+            event: {
+              id,
+              action: 'delete-link',
+              data: { id },
+            },
+            values: {
+              predecessors: next[0].data,
+              successors: next[1].data,
+            },
+          });
+        return next;
+      });
+    }
+  }
+
+  function onEdit(id, column, value) {
+    const update = { [column]: value };
+    if (column === 'type' && schedule?.auto) {
+      if (value !== 'e2s') update.lag = '';
+    }
+
     if (autoSave) {
       api.exec('update-link', {
         id,
         link: update,
       });
     } else {
-      setLinksData((prev) =>
-        (prev || []).map((group) => ({
+      setLinksData((prev) => {
+        const next = (prev || []).map((group) => ({
           ...group,
           data: group.data.map((item) =>
-            item.link.id === id
-              ? { ...item, link: { ...item.link, ...update } }
-              : item,
+            item.id === id ? { ...item, ...update } : item,
           ),
-        })),
-      );
-      onLinksChange &&
-        onLinksChange({
-          id,
-          action: 'update-link',
-          data: {
-            id,
-            link: update,
-          },
-        });
+        }));
+        onExtChange &&
+          onExtChange({
+            view: 'links',
+            event: {
+              id,
+              action: 'update-link',
+              data: {
+                id,
+                link: update,
+              },
+            },
+            values: {
+              predecessors: next[0].data,
+              successors: next[1].data,
+            },
+          });
+        return next;
+      });
     }
   }
 
+  const columns = useMemo(() => getColumns(), [_, list, isLagHidden]);
+
+  const isMessage =
+    linksData && !linksData[0].data.length && !linksData[1].data.length;
+
+  const wrapperClassName = [
+    'wx-j93aYGQf',
+    'wx-wrapper',
+    batch !== 'links' ? 'wx-nobatch' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <>
+    <div className={wrapperClassName}>
       {(linksData || []).map((group, idx) =>
         group.data.length ? (
-          <div className="wx-j93aYGQf wx-links" key={idx}>
-            <context.fieldId.Provider value={null}>
-              <Field label={group.title} position="top">
-                <table>
-                  <tbody>
-                    {group.data.map((obj) => (
-                      <tr key={obj.link.id}>
-                        <td className="wx-j93aYGQf wx-cell">
-                          <div className="wx-j93aYGQf wx-task-name">
-                            {obj.task.text || ''}
-                          </div>
-                        </td>
-                        {schedule?.auto && obj.link.type === 'e2s' ? (
-                          <td className="wx-j93aYGQf wx-cell wx-link-lag">
-                            <Text
-                              type="number"
-                              placeholder={_('Lag')}
-                              value={obj.link.lag}
-                              disabled={
-                                unscheduledTasks && _activeTask?.unscheduled
-                              }
-                              onChange={(ev) => {
-                                if (!ev.input)
-                                  handleChange(obj.link.id, { lag: ev.value });
-                              }}
-                            />
-                          </td>
-                        ) : null}
-                        <td className="wx-j93aYGQf wx-cell">
-                          <div className="wx-j93aYGQf wx-wrapper">
-                            <Combo
-                              value={obj.link.type}
-                              placeholder={_('Select link type')}
-                              options={list}
-                              onChange={(ev) =>
-                                handleChange(obj.link.id, { type: ev.value })
-                              }
-                            >
-                              {({ option }) => option.label}
-                            </Combo>
-                          </div>
-                        </td>
-
-                        <td className="wx-j93aYGQf wx-cell">
-                          <i
-                            className="wx-j93aYGQf wxi-delete wx-delete-icon"
-                            onClick={() => deleteLink(obj.link.id)}
-                            role="button"
-                          ></i>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Field>
-            </context.fieldId.Provider>
-          </div>
+          <Fragment key={idx}>
+            <div className="wx-j93aYGQf wx-title">{group.title}</div>
+            <GridSection
+              columns={columns}
+              onAction={onDeleteAction}
+              onEdit={onEdit}
+              data={group.data}
+              sizes={{
+                rowHeight: 44,
+              }}
+            />
+          </Fragment>
         ) : null,
       )}
-    </>
+      {isMessage ? (
+        <div className="wx-j93aYGQf wx-nodata">{_('No links')}</div>
+      ) : null}
+    </div>
   );
 }

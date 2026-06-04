@@ -2,6 +2,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   useCallback,
   useContext,
   forwardRef,
@@ -9,12 +10,20 @@ import {
 } from 'react';
 import { ContextMenu as WxContextMenu } from '@svar-ui/react-menu';
 import { handleAction, getMenuOptions, isHandledAction } from '@svar-ui/gantt-store';
-import { locale, locateID } from '@svar-ui/lib-dom';
+import { locale, locateID, locate } from '@svar-ui/lib-dom';
 import { en } from '@svar-ui/gantt-locales';
 import { en as coreEn } from '@svar-ui/core-locales';
 import { context } from '@svar-ui/react-core';
 import { useStoreLater } from '@svar-ui/lib-react';
 import './ContextMenu.css';
+
+function cloneMenuItems(items) {
+  return items.map((op) => {
+    const copy = { ...op };
+    if (op.data) copy.data = cloneMenuItems(op.data);
+    return copy;
+  });
+}
 
 const ContextMenu = forwardRef(function ContextMenu(
   {
@@ -31,6 +40,10 @@ const ContextMenu = forwardRef(function ContextMenu(
 ) {
   const menuRef = useRef(null);
   const activeIdRef = useRef(null);
+  const [activeTask, setActiveTask] = useState(null);
+  // built imperatively before the menu opens, not derived from the store
+  // (avoids rebuild churn on every store tick)
+  const [menuOptions, setMenuOptions] = useState([]);
 
   // i18n context
   const i18nCtx = useContext(context.i18n);
@@ -42,17 +55,28 @@ const ContextMenu = forwardRef(function ContextMenu(
   const selectedTasksVal = useStoreLater(api, '_selected');
   const splitTasksVal = useStoreLater(api, 'splitTasks');
   const summaryVal = useStoreLater(api, 'summary');
+  const groupByVal = useStoreLater(api, 'groupBy');
 
   const config = useMemo(
     () => ({
       splitTasks: splitTasksVal,
       taskTypes: taskTypesVal,
       summary: summaryVal,
+      group: !!groupByVal?.field,
     }),
-    [splitTasksVal, taskTypesVal, summaryVal],
+    [splitTasksVal, taskTypesVal, summaryVal, groupByVal],
   );
 
   const fullOptions = useMemo(() => getMenuOptions(config), [config]);
+
+  const customOptions = useMemo(
+    () => (optionsInit.length ? optionsInit : null),
+    [optionsInit],
+  );
+  const localizedOptions = useMemo(
+    () => applyLocaleFn(customOptions ?? fullOptions),
+    [customOptions, fullOptions, _],
+  );
 
   useEffect(() => {
     if (!api) return;
@@ -75,30 +99,58 @@ const ContextMenu = forwardRef(function ContextMenu(
     });
   }
 
-  function getOptions() {
-    const finalOptions = optionsInit.length
-      ? optionsInit
-      : getMenuOptions(config);
+  // _selected lags behind single selection from resolver (setAsyncState)
+  const tasks = useMemo(
+    () =>
+      selectedTasksVal && selectedTasksVal.length
+        ? selectedTasksVal
+        : activeTask
+          ? [activeTask]
+          : [],
+    [selectedTasksVal, activeTask],
+  );
 
-    return applyLocaleFn(finalOptions);
-  }
-
-  const cOptions = useMemo(() => {
-    return getOptions();
-  }, [api, optionsInit, config, _]);
-
-  const selectedTasks = useMemo(
-    () => (selectedTasksVal && selectedTasksVal.length ? selectedTasksVal : []),
-    [selectedTasksVal],
+  const buildOptions = useCallback(
+    (tasksArg = tasks) => {
+      if (!api) return [];
+      const items = cloneMenuItems(localizedOptions);
+      const setDisabled = (data) => {
+        data.forEach((item) => {
+          if (item.isDisabled) {
+            item.disabled = tasksArg.some((task) =>
+              item.isDisabled(
+                task,
+                api.getState(),
+                api.getTaskCalendar(task),
+                activeIdRef.current,
+              ),
+            );
+          }
+          if (item.data) setDisabled(item.data);
+        });
+      };
+      setDisabled(items);
+      return items;
+    },
+    [api, localizedOptions, tasks],
   );
 
   const itemResolver = useCallback(
     (id, ev) => {
+      if (
+        locate(ev.target, 'data-menu-ignore')?.classList.contains(
+          'wx-resource-load',
+        )
+      )
+        return null;
+
       let task = id ? api?.getTask(id) : null;
       if (resolver) {
         const result = resolver(id, ev);
         task = result === true ? task : result;
       }
+      setActiveTask(task);
+
       if (task) {
         const segmentIndex = locateID(ev.target, 'data-segment');
         if (segmentIndex !== null)
@@ -108,10 +160,18 @@ const ContextMenu = forwardRef(function ContextMenu(
         if (!Array.isArray(selectedVal) || !selectedVal.includes(task.id)) {
           api && api.exec && api.exec('select-task', { id: task.id });
         }
+
+        // activeTask state update is async, so build with the freshly
+        // resolved task to mirror the Svelte `tasks` derived
+        const effectiveTasks =
+          selectedTasksVal && selectedTasksVal.length
+            ? selectedTasksVal
+            : [task];
+        setMenuOptions(buildOptions(effectiveTasks));
       }
       return task;
     },
-    [api, resolver, selectedVal],
+    [api, resolver, selectedVal, selectedTasksVal, buildOptions],
   );
 
   const menuAction = useCallback(
@@ -127,11 +187,8 @@ const ContextMenu = forwardRef(function ContextMenu(
   );
 
   const filterMenu = useCallback(
-    (item, task) => {
-      // for single selection from resolver _selected are empty
-      // due to setAsyncState causing _selected to lag
-      const tasks = selectedTasks.length ? selectedTasks : task ? [task] : [];
-
+    (item) => {
+      if (!api) return true;
       let result = filter ? tasks.every((t) => filter(item, t)) : true;
 
       if (result) {
@@ -139,20 +196,15 @@ const ContextMenu = forwardRef(function ContextMenu(
           result = !tasks.some((t) =>
             item.isHidden(t, api.getState(), activeIdRef.current),
           );
-        if (item.isDisabled) {
-          const disabled = tasks.some((t) =>
-            item.isDisabled(t, api.getState(), activeIdRef.current),
-          );
-          item.disabled = disabled;
-        }
       }
       return result;
     },
-    [filter, selectedTasks, api],
+    [filter, tasks, api],
   );
 
   useImperativeHandle(ref, () => ({
     show: (ev, obj) => {
+      setMenuOptions(buildOptions());
       if (menuRef.current && menuRef.current.show) {
         menuRef.current.show(ev, obj);
       }
@@ -169,7 +221,7 @@ const ContextMenu = forwardRef(function ContextMenu(
     <>
       <WxContextMenu
         filter={filterMenu}
-        options={cOptions}
+        options={menuOptions}
         dataKey={'id'}
         resolver={itemResolver}
         onClick={menuAction}

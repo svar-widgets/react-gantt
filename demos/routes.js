@@ -2,6 +2,7 @@ import BasicInit from './cases/BasicInit.jsx';
 import GanttProvider from './cases/GanttProvider.jsx';
 import GanttBatchProvider from './cases/GanttBatchProvider.jsx';
 import GanttBackend from './cases/GanttBackend.jsx';
+import GanttExcelImport from './cases/GanttExcelImport.jsx';
 import GanttScales from './cases/GanttScales.jsx';
 import GanttGrid from './cases/GanttGrid.jsx';
 import GanttNoGrid from './cases/GanttNoGrid.jsx';
@@ -13,6 +14,7 @@ import GanttForm from './cases/GanttForm.jsx';
 import GanttSizes from './cases/GanttSizes.jsx';
 import GanttMultiple from './cases/GanttMultiple.jsx';
 import GanttPerformance from './cases/GanttPerformance.jsx';
+import GanttDisplayMode from './cases/GanttDisplayMode.jsx';
 
 
 import GanttTooltips from './cases/GanttTooltips.jsx';
@@ -40,8 +42,6 @@ import GanttFilter from './cases/GanttFilter.jsx';
 import GanttFilterInline from './cases/GanttFilterInline.jsx';
 import GanttFilterBuilder from './cases/GanttFilterBuilder.jsx';
 import GanttFilterQuery from './cases/GanttFilterQuery.jsx';
-import SummariesProgress from './cases/ProSummariesProgress.jsx';
-import SummariesConvert from './cases/ProSummariesConvert.jsx';
 import GanttEditor from './cases/GanttEditor.jsx';
 import GanttEditorConfig from './cases/GanttEditorConfig.jsx';
 import GanttEditorCustomControls from './cases/GanttEditorCustomControls.jsx';
@@ -58,7 +58,9 @@ import GanttEditorValidation from './cases/GanttEditorValidation.jsx';
 
 export const links = [
   ['/base/:skin', 'Basic Gantt', BasicInit, 'BasicInit'],
+  ['/performance/:skin', 'Performance', GanttPerformance, 'GanttPerformance'],
 
+  { group: 'Timeline' },
   ['/sizes/:skin', 'Scale / cell sizes', GanttSizes, 'GanttSizes'],
   [
     '/cell-borders/:skin',
@@ -66,9 +68,9 @@ export const links = [
     ChartCellBorders,
     'ChartBorders',
   ],
-  ['/scales/:skin', 'Custom scales', GanttScales, 'GanttScales'],
   ['/start-end/:skin', 'Start/end dates', GanttStartEnd, 'GanttStartEnd'],
   ['/scroll-date/:skin', 'Scroll to date', GanttScaleDate, 'GanttScaleDate'],
+  ['/scales/:skin', 'Custom scales', GanttScales, 'GanttScales'],
   [
     '/custom-scale/:skin',
     'Custom scale unit',
@@ -81,17 +83,6 @@ export const links = [
     GanttMinScaleUnit,
     'GanttMinScaleUnit',
   ],
-
-  ['/holidays/:skin', 'Holidays', GanttHolidays, 'GanttHolidays'],
-
-
-  ['/templates/:skin', 'Custom text', GanttText, 'GanttText'],
-  ['/tooltips/:skin', 'Tooltips', GanttTooltips, 'GanttTooltips'],
-
-  ['/task-types/:skin', 'Task types', GanttTaskTypes, 'GanttTaskTypes'],
-
-  ['/zoom/:skin', 'Zoom', GanttZoom, 'GanttZoom'],
-  ['/custom-zoom/:skin', 'Custom Zoom', GanttCustomZoom, 'GanttCustomZoom'],
   [
     '/length-unit/:skin',
     'Length unit (rounding)',
@@ -110,7 +101,11 @@ export const links = [
     GanttDurationUnitChanges,
     'GanttDurationUnitChanges',
   ],
-  ['/no-grid/:skin', 'No grid', GanttNoGrid, 'GanttNoGrid'],
+  ['/zoom/:skin', 'Zoom', GanttZoom, 'GanttZoom'],
+  ['/custom-zoom/:skin', 'Custom Zoom', GanttCustomZoom, 'GanttCustomZoom'],
+  ['/holidays/:skin', 'Holidays', GanttHolidays, 'GanttHolidays'],
+
+  { group: 'Grid' },
   [
     '/grid-fill-space-columns/:skin',
     'Flexible grid columns',
@@ -123,15 +118,92 @@ export const links = [
     GanttFixedColumns,
     'GanttFixedColumns',
   ],
-  ['/grid-custom-columns/:skin', 'Custom grid columns', GanttGrid, 'GanttGrid'],
+  [
+    '/grid-custom-columns/:skin',
+    'Custom column content',
+    GanttGrid,
+    'GanttGrid',
+  ],
+  ['/no-grid/:skin', 'No grid', GanttNoGrid, 'GanttNoGrid'],
+  [
+    '/header-menu/:skin',
+    'Header menu to hide columns',
+    HeaderMenu,
+    'GridHeaderMenu',
+  ],
+
+  { group: 'Tasks' },
+  ['/task-types/:skin', 'Task types', GanttTaskTypes, 'GanttTaskTypes'],
+  ['/templates/:skin', 'Custom text', GanttText, 'GanttText'],
+  ['/tooltips/:skin', 'Tooltips', GanttTooltips, 'GanttTooltips'],
+
+  { group: 'Data operations' },
+  [
+    '/prevent-actions/:skin',
+    'Prevent default UI actions',
+    GanttPreventActions,
+    'GanttPreventActions',
+  ],
   [
     '/grid-inline-editors/:skin',
-    'Grid inline editors',
+    'Edit tasks in grid',
     GridInlineEditors,
     'GridInlineEditors',
   ],
+  ['/readonly/:skin', 'Readonly', GanttReadOnly, 'GanttReadOnly'],
+  [
+    '/filtering/:skin',
+    'Filter tasks in grid',
+    GanttFilterInline,
+    'GanttFilterInline',
+  ],
+  [
+    '/filtering-api/:skin',
+    'External filter controls',
+    GanttFilter,
+    'GanttFilter',
+  ],
+  [
+    '/filtering-builder/:skin',
+    'Integration with Filter Builder',
+    GanttFilterBuilder,
+    'GanttFilterBuilder',
+  ],
+  [
+    '/filtering-query/:skin',
+    'Integration with Filter Query',
+    GanttFilterQuery,
+    'GanttFilterQuery',
+  ],
+  ['/sorting/:skin', 'External sort controls', GanttSort, 'GanttSort'],
+  ['/sorting-api/:skin', 'Sort by API', GanttCustomSort, 'GanttCustomSort'],
 
-  ['/toolbar/:skin', 'Toolbar', GanttToolbar, 'GanttToolbar'],
+  { group: 'Scheduling' },
+
+
+  { group: 'Load & Save' },
+  ['/backend/:skin', 'Load from backend', GanttBackend, 'GanttBackend'],
+  [
+    '/backend-provider/:skin',
+    'Save to backend',
+    GanttProvider,
+    'GanttProvider',
+  ],
+  [
+    '/backend-provider-batch/:skin',
+    'Save to backend: batch request',
+    GanttBatchProvider,
+    'GanttBatchProvider',
+  ],
+  [
+    '/excel-import/:skin',
+    'Import from Excel / CSV',
+    GanttExcelImport,
+    'GanttExcelImport',
+  ],
+
+  { group: 'UI / Layout' },
+  ['/toolbar/:skin', 'Toolbar: basic', GanttToolbar, 'GanttToolbar'],
   [
     '/toolbar-buttons/:skin',
     'Toolbar: limited buttons',
@@ -144,7 +216,7 @@ export const links = [
     GanttToolbarCustom,
     'GanttToolbarCustom',
   ],
-  ['/context-menu/:skin', 'Context menu', ContextMenu, 'ContextMenu'],
+  ['/context-menu/:skin', 'Context menu: basic', ContextMenu, 'ContextMenu'],
   [
     '/menu-handler/:skin',
     'Context menu: limiting options',
@@ -158,64 +230,7 @@ export const links = [
     ContextMenuOptions,
     'ContextMenuOptions',
   ],
-  [
-    '/header-menu/:skin',
-    'Header menu: hiding columns',
-    HeaderMenu,
-    'GridHeaderMenu',
-  ],
-  ['/locale/:skin', 'Locales', GanttLocale, 'GanttLocale'],
-  ['/fullscreen/:skin', 'Fullscreen', GanttFullscreen, 'GanttFullscreen'],
-  ['/readonly/:skin', 'Readonly mode', GanttReadOnly, 'GanttReadOnly'],
-  [
-    '/gantt-multiple/:skin',
-    'Many Gantts per page',
-    GanttMultiple,
-    'GanttMultiple',
-  ],
-  ['/performance/:skin', 'Performance', GanttPerformance, 'GanttPerformance'],
-  [
-    '/prevent-actions/:skin',
-    'Preventing UI actions',
-    GanttPreventActions,
-    'GanttPreventActions',
-  ],
-  ['/sorting/:skin', 'Custom sorting', GanttSort, 'GanttSort'],
-  ['/sorting-api/:skin', 'Sort by API', GanttCustomSort, 'GanttCustomSort'],
-  [
-    '/filtering/:skin',
-    'Inline Filtering',
-    GanttFilterInline,
-    'GanttFilterInline',
-  ],
-  ['/filtering-api/:skin', 'External filters', GanttFilter, 'GanttFilter'],
-  [
-    '/filtering-builder/:skin',
-    'Integration with Filter Builder',
-    GanttFilterBuilder,
-    'GanttFilterBuilder',
-  ],
-  [
-    '/filtering-query/:skin',
-    'Integration with Filter Query',
-    GanttFilterQuery,
-    'GanttFilterQuery',
-  ],
-
-  ['/backend/:skin', 'Backend data', GanttBackend, 'GanttBackend'],
-  [
-    '/backend-provider/:skin',
-    'Saving to backend',
-    GanttProvider,
-    'GanttProvider',
-  ],
-  [
-    '/backend-provider-batch/:skin',
-    'Saving to backend: batch request',
-    GanttBatchProvider,
-    'GanttBatchProvider',
-  ],
-  ['/editor/:skin', 'Editor', GanttEditor, 'GanttEditor'],
+  ['/editor/:skin', 'Editor: basic', GanttEditor, 'GanttEditor'],
   [
     '/editor-config/:skin',
     'Editor: custom settings',
@@ -252,5 +267,16 @@ export const links = [
     GanttEditorValidation,
     'GanttEditorValidation',
   ],
-  ['/custom-edit-form/:skin', 'Custom edit form', GanttForm, 'GanttForm'],
+  ['/custom-edit-form/:skin', 'Custom edit dialog', GanttForm, 'GanttForm'],
+
+  { group: 'Appearance' },
+  [
+    '/gantt-multiple/:skin',
+    'Many Gantts per page',
+    GanttMultiple,
+    'GanttMultiple',
+  ],
+  ['/fullscreen/:skin', 'Fullscreen', GanttFullscreen, 'GanttFullscreen'],
+  ['/display-mode/:skin', 'Display mode', GanttDisplayMode, 'GanttDisplayMode'],
+  ['/locale/:skin', 'Locales', GanttLocale, 'GanttLocale'],
 ];

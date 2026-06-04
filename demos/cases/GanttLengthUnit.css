@@ -1,18 +1,17 @@
-.demo.wx-VOqDTkHq {
+.demo.wx-M5bD8hJk {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.bar.wx-VOqDTkHq {
+.bar.wx-M5bD8hJk {
   padding: 20px;
-  background-color: var(--wx-background);
-  border: var(--wx-border);
+  border-bottom: var(--wx-gantt-border);
 
   --wx-input-width: 100px;
 }
 
-.gantt.wx-VOqDTkHq {
+.gantt.wx-M5bD8hJk {
   position: relative;
   height: calc(100% - 74px);
 }

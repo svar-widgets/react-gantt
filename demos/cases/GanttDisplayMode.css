@@ -1,0 +1,27 @@
+.rows.wx-K3mN9pQr {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--wx-background);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.bar.wx-K3mN9pQr {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bar.wx-K3mN9pQr .wx-field.wx-left {
+  align-items: center;
+}
+.bar.wx-K3mN9pQr .wx-field.wx-left > .wx-label {
+  width: 120px;
+}
+.gtcell.wx-K3mN9pQr {
+  position: relative;
+  height: 100%;
+  border-top: var(--wx-gantt-border);
+  overflow: hidden;
+}

@@ -1,0 +1,12 @@
+.wx-table.wx-aaadQkXy .wx-editor-cell,
+.wx-table.wx-aaadQkXy .wx-editor > .wx-value {
+  display: flex;
+  align-items: center;
+  background: inherit;
+}
+.wx-table.wx-aaadQkXy .wx-text-center {
+  justify-content: center;
+}
+.wx-table.wx-aaadQkXy .wx-cell:not(:last-child) {
+  border-right-color: transparent;
+}

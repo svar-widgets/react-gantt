@@ -1,42 +1,18 @@
-.wx-links.wx-j93aYGQf {
-  margin-bottom: 10px;
-}
-
-.wx-cell.wx-j93aYGQf {
-  text-align: center;
-}
-
-.wx-task-name.wx-j93aYGQf {
-  font-family: var(--wx-input-font-family);
-  font-size: var(--wx-input-font-size);
-  font-weight: var(--wx-input-font-weigth);
-  color: var(--wx-input-font-color);
-  width: 170px;
-  text-align: left;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.wx-link-lag.wx-j93aYGQf {
-  width: 60px;
-}
-
 .wx-wrapper.wx-j93aYGQf {
-  position: relative;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.wx-delete-icon.wx-j93aYGQf {
-  margin-left: 12px;
-  position: relative;
-  top: 2px;
+.wx-nobatch.wx-j93aYGQf {
+  gap: 4px;
+}
 
-  font-size: var(--wx-icon-size);
-  cursor: pointer;
+.wx-title.wx-j93aYGQf {
+  font-weight: var(--wx-header-font-weight);
+}
+
+.wx-nodata.wx-j93aYGQf {
   color: var(--wx-gantt-icon-color);
-}
-
-.wx-delete-icon.wx-j93aYGQf:hover {
-  color: var(--wx-color-primary);
+  margin-top: 8px;
 }

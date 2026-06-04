@@ -14,7 +14,10 @@ export default function Links({ onSelectLink, selectedLink, readonly }) {
   const onClickOutside = useCallback(
     (event) => {
       const css = event?.target?.classList;
-      if (!css?.contains('wx-line') && !css?.contains('wx-delete-button')) {
+      if (
+        !css?.contains('wx-line-hitbox') &&
+        !css?.contains('wx-delete-button')
+      ) {
         onSelectLink(null);
       }
     },
@@ -46,21 +49,32 @@ export default function Links({ onSelectLink, selectedLink, readonly }) {
           (criticalPath && link.critical ? ' wx-critical' : '') +
           (!readonly ? ' wx-line-selectable' : '');
         return (
-          <polyline
+          <g
             className={className}
-            points={link.$p}
             key={link.id}
             onClick={() => !readonly && onSelectLink(link.id)}
             data-link-id={setID(link.id)}
-          />
+          >
+            <polyline className="wx-dkx3NwEn wx-line-draw" points={link.$p} />
+            <polyline className="wx-dkx3NwEn wx-line-hitbox" points={link.$p} />
+          </g>
         );
       })}
       {!readonly && selectedLink && (
-        <polyline
+        <g
           ref={selectedLineRef}
           className="wx-dkx3NwEn wx-line wx-line-selected wx-line-selectable wx-delete-link"
-          points={selectedLink.$p}
-        />
+          data-link-id={setID(selectedLink.id)}
+        >
+          <polyline
+            className="wx-dkx3NwEn wx-line-draw"
+            points={selectedLink.$p}
+          />
+          <polyline
+            className="wx-dkx3NwEn wx-line-hitbox"
+            points={selectedLink.$p}
+          />
+        </g>
       )}
     </svg>
   );

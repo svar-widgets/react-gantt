@@ -11,7 +11,7 @@ function GanttFilterInline({ skinSettings }) {
 
   function reload() {
     const next = [...data.tasks];
-    next.pop();
+    if (api.serialize().length === data.tasks.length) next.pop();
     setTasks(next);
   }
 

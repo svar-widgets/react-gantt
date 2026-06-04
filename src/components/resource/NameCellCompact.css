@@ -1,0 +1,17 @@
+.wx-content.wx-aacXLb2S {
+  width: 100%;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.wx-name.wx-aacXLb2S {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.wx-avatar.wx-aacXLb2S {
+  display: flex;
+  align-items: center;
+}

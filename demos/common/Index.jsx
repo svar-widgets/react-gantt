@@ -40,6 +40,10 @@ function DemoExplorerContent({
   }, []);
 
   useEffect(() => {
+    document.body.className = `wx-${skin}-theme`;
+  }, [skin]);
+
+  useEffect(() => {
     if (isMobileView && title) {
       setShow(false);
     }
@@ -53,7 +57,7 @@ function DemoExplorerContent({
       setSkin(newSkin);
 
       const targetPage = `/${page}/:skin`;
-      const matched = links.find((a) => a[0] === targetPage);
+      const matched = links.find((a) => Array.isArray(a) && a[0] === targetPage);
       if (matched) {
         setTitle(matched[1]);
         const name = matched[3] || matched[1];
@@ -80,7 +84,7 @@ function DemoExplorerContent({
 
   return (
     <div
-      className={`wx-demos wx-willow-theme layout ${show ? 'active' : ''}${isMobileView ? ' narrow' : ''}`}
+      className={`wx-demos wx-${skin}-theme layout ${show ? 'active' : ''}${isMobileView ? ' narrow' : ''}`}
     >
       <div
         className={`wx-demos sidebar ${show ? 'active' : ''}`}
@@ -115,14 +119,20 @@ function DemoExplorerContent({
             </div>
           </div>
           <div className="wx-demos box-links">
-            {links.map((data) => (
-              <Link
-                key={data[0]}
-                data={data}
-                skin={skin}
-                onClick={() => isMobileView && setShow(false)}
-              />
-            ))}
+            {links.map((data, i) =>
+              Array.isArray(data) ? (
+                <Link
+                  key={data[0]}
+                  data={data}
+                  skin={skin}
+                  onClick={() => isMobileView && setShow(false)}
+                />
+              ) : (
+                <div key={`group-${i}`} className="wx-demos group-title">
+                  {data.group}
+                </div>
+              ),
+            )}
           </div>
         </div>
       </div>

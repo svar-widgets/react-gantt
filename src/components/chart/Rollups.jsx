@@ -1,9 +1,11 @@
+import { setID } from '@svar-ui/lib-dom';
+
 function Rollups(props) {
   const { rollup, parent } = props;
 
   return (
     <div
-      data-tooltip-id={rollup.id}
+      data-rollup-id={setID(rollup.id)}
       className={`wx-GKbcLEGA wx-rollup wx-${rollup.type}-rollup`}
       style={{
         left: `${rollup.$x_rollup}px`,
