@@ -16,12 +16,13 @@ export default function GroupTextCell({ row }) {
   const isGroup = useMemo(() => groupBy?.field && row.$group, [groupBy, row]);
 
   const groupValue = useMemo(() => {
+    if (!isGroup) return undefined;
     let value = row.$groupValue;
     if (value && groupBy?.field === 'priority') {
       value = priorityMap[value];
     }
     return value;
-  }, [groupBy, row]);
+  }, [isGroup, groupBy, row]);
 
   if (isGroup) {
     if (row.$groupValue === '$ungrouped') {

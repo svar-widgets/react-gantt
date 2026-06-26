@@ -8,7 +8,7 @@ import {
   useCallback,
 } from 'react';
 import { locateID } from '@svar-ui/lib-dom';
-import { getResourceColumns } from '@svar-ui/gantt-store';
+import { getResourceColumns, normalizeResourceColumns } from '@svar-ui/gantt-store';
 import { locale } from '@svar-ui/lib-dom';
 import { en } from '@svar-ui/gantt-locales';
 import { en as coreEn } from '@svar-ui/core-locales';
@@ -26,22 +26,23 @@ import LoadCell from './LoadCell.jsx';
 import {
   getFlexBasis,
   getFitColumns,
+  getFillColumn,
+  getColumnsWidth,
   getSortMarks,
-  adjustColumns,
-  checkFlex,
   getResourceLoadColumns,
   getScrollbarWidth,
 } from '../../helpers/grid';
+import { createZoomWheelHandler } from '../../helpers/zoom';
 
 import './ResourceLoad.css';
 
 function ResourceLoad(props) {
-  const {
-    api,
-    columns = getResourceColumns(),
-    mode = 'grid',
-    template,
-  } = props;
+  const { api, mode = 'grid', template } = props;
+
+  const columns = useMemo(
+    () => props.columns || getResourceColumns(),
+    [props.columns],
+  );
 
   // detect scrollbar width that may differ in browsers
   const [scrollbarWidth, setScrollbarWidth] = useState(17);
@@ -62,6 +63,7 @@ function ResourceLoad(props) {
   const columnsWidth = useStore(api, '_columnsWidth');
   const gridCollapseThreshold = useStore(api, '_gridCollapseThreshold');
   const cellBorders = useStore(api, 'cellBorders');
+  const zoom = useStore(api, 'zoom');
 
   const lFromCtx = useContext(context.i18n);
   const l = useMemo(() => lFromCtx || locale({ ...en, ...coreEn }), [lFromCtx]);
@@ -75,6 +77,10 @@ function ResourceLoad(props) {
   const gridContainerRef = useRef(null);
   const scaleContainerRef = useRef(null);
   const scalesDiv = useRef(null);
+  const chartContainerRef = useRef(null);
+
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
 
   const leftApiRef = useRef(null);
   const rightApiRef = useRef(null);
@@ -83,11 +89,10 @@ function ResourceLoad(props) {
   const isUserScrollRef = useRef(false);
 
   const [selectedRows, setSelectedRows] = useState([]);
-  const [updateFlex, setUpdateFlex] = useState(false);
 
   const finalColumns = useMemo(() => {
     if (!columns || !columns.length) return [];
-    let cols = columns.map((col) => {
+    let cols = normalizeResourceColumns(columns).map((col) => {
       col = { ...col };
       const header = col.header;
       if (typeof header === 'object') {
@@ -119,68 +124,25 @@ function ResourceLoad(props) {
     [rResources, rResourceSort]
   );
 
-  const hasFlexCol = useMemo(() => {
-    return checkFlex(finalColumns);
-  }, [finalColumns, updateFlex]);
-
   const [columnWidth, setColumnWidth] = useState(0);
 
   useEffect(() => {
     let width;
-    // use gantt grid column widths if set; otherwise, calculate
     if (columnsWidth) width = columnsWidth;
     else if (displayMode === 'chart') width = gridCollapseThreshold || 0;
-    else if (columns?.length && columns.every((c) => c.width && !c.flexgrow)) {
-      width = columns.reduce((acc, c) => acc + c.width, 0);
-    } else width = 440; // default columns width
+    else width = gridWidth;
     setColumnWidth((prev) => (prev === width ? prev : width));
-  }, [columnsWidth, displayMode, gridCollapseThreshold, columns]);
+  }, [columnsWidth, displayMode, gridCollapseThreshold, gridWidth]);
 
   const fitColumns = useMemo(
-    () =>
-      getFitColumns(
-        finalColumns,
-        columnWidth,
-        displayMode,
-        gridClientWidth,
-        gridWidth,
-        hasFlexCol,
-        gridCollapseThreshold,
-        'name'
-      ),
-    [
-      finalColumns,
-      columnWidth,
-      displayMode,
-      gridClientWidth,
-      gridWidth,
-      hasFlexCol,
-      gridCollapseThreshold,
-    ]
+    () => getFitColumns(finalColumns, displayMode, 'name'),
+    [finalColumns, displayMode]
   );
-
-  const fitColumnsRef = useRef(fitColumns);
-  useEffect(() => {
-    fitColumnsRef.current = fitColumns;
-  }, [fitColumns]);
 
   const finalColumnsRef = useRef(finalColumns);
   useEffect(() => {
     finalColumnsRef.current = finalColumns;
   }, [finalColumns]);
-
-  const adjustColumnWidth = useCallback((resized) => {
-    const cols = finalColumnsRef.current;
-    if (!checkFlex(cols)) {
-      const newColumnWidth = fitColumnsRef.current.reduce((acc, col) => {
-        if (resized && col.$width) col.$width = col.width;
-        return acc + (col.hidden ? 0 : col.width);
-      }, 0);
-      setColumnWidth((prev) => (newColumnWidth !== prev ? newColumnWidth : prev));
-    }
-    // hasFlexCol update
-    setUpdateFlex((v) => !v);
-  }, []);
 
   const rightColumns = useMemo(
     () => getResourceLoadColumns(rScales, LoadCell, template),
@@ -258,7 +220,6 @@ function ResourceLoad(props) {
   const setHandlersState = () => {
     handlersStateRef.current = {
       api,
-      adjustColumnWidth,
       rResourceSort,
       syncHorizontalScroll,
     };
@@ -266,12 +227,7 @@ function ResourceLoad(props) {
   setHandlersState();
   useEffect(() => {
     setHandlersState();
-  }, [
-      api,
-      adjustColumnWidth,
-      rResourceSort,
-      syncHorizontalScroll,
-  ]);
+  }, [api, rResourceSort, syncHorizontalScroll]);
 
   // track container/grid sizes (offsetWidth / clientWidth / clientHeight)
   useEffect(() => {
@@ -308,9 +264,8 @@ function ResourceLoad(props) {
 
   const initLeft = useCallback((lapi) => {
     leftApiRef.current = lapi;
-    lapi.intercept('select-row', (ev) => {
-      setSelectedRows([ev.id]);
-      return false;
+    lapi.on('select-row', (ev) => {
+      setSelectedRows((prev) => (prev[0] === ev.id ? prev : [ev.id]));
     });
     lapi.intercept('sort-rows', (ev) => {
       const { key, add } = ev;
@@ -330,13 +285,12 @@ function ResourceLoad(props) {
       return false;
     });
 
-    lapi.on('resize-column', () => {
-      handlersStateRef.current.adjustColumnWidth(true);
+    lapi.intercept('resize-column', (ev) => {
+      ev.flexgrowFallback = getFillColumn(finalColumnsRef.current, ev.id);
     });
 
-    lapi.on('hide-column', (ev) => {
-      if (!ev.mode) adjustColumns(finalColumnsRef.current);
-      handlersStateRef.current.adjustColumnWidth();
+    lapi.on('resize-column', () => {
+      setColumnWidth(getColumnsWidth(lapi.getState().columns));
     });
 
     lapi.on('scroll-to', (ev) => {
@@ -352,9 +306,8 @@ function ResourceLoad(props) {
     rightApiRef.current = rapi;
     handlersStateRef.current.syncHorizontalScroll(expectedScrollLeftRef.current);
 
-    rapi.intercept('select-row', (ev) => {
-      setSelectedRows([ev.id]);
-      return false;
+    rapi.on('select-row', (ev) => {
+      setSelectedRows((prev) => (prev[0] === ev.id ? prev : [ev.id]));
     });
 
     rapi.on('scroll-to', (ev) => {
@@ -397,6 +350,26 @@ function ResourceLoad(props) {
 
     return '';
   }
+
+  const onWheel = useMemo(
+    () =>
+      api
+        ? createZoomWheelHandler(
+            api,
+            () => zoomRef.current,
+            () => chartContainerRef.current,
+          )
+        : null,
+    [api],
+  );
+
+  // attach wheel manually: React's onWheel prop is passive and can't preventDefault
+  useEffect(() => {
+    const node = chartContainerRef.current;
+    if (!node || !onWheel) return;
+    node.addEventListener('wheel', onWheel);
+    return () => node.removeEventListener('wheel', onWheel);
+  }, [onWheel]);
 
   if (!api) return null;
 
@@ -447,7 +420,7 @@ function ResourceLoad(props) {
           </>
         ) : null}
 
-        <div className="wx-chart wx-aacPnv3E">
+        <div className="wx-chart wx-aacPnv3E" ref={chartContainerRef}>
           <div
             className={[
               'wx-timescale-viewport',

@@ -26,7 +26,6 @@ function Layout(props) {
   const rColumns = useStore(api, 'columns');
   const rScrollTop = useStore(api, 'scrollTop');
   const undo = useStore(api, 'undo');
-  const gridWidth = useStore(api, 'gridWidth');
   const columnsWidth = useStore(api, '_columnsWidth');
 
   const [ganttWidth, setGanttWidth] = useWritableProp(props.ganttWidth);
@@ -51,7 +50,7 @@ function Layout(props) {
 
   const latestLayout = useRef({
     ganttWidth: 0,
-    gridWidth: 0,
+    columnsWidth: 0,
     ganttHeight: 0,
     rScalesHeight: 0,
     scrollSize: 0,
@@ -60,23 +59,23 @@ function Layout(props) {
   useEffect(() => {
     latestLayout.current = {
       ganttWidth: ganttWidth ?? 0,
-      gridWidth,
+      columnsWidth,
       ganttHeight: ganttHeight ?? 0,
       rScalesHeight: rScales.height,
       scrollSize,
     };
-  }, [ganttWidth, gridWidth, ganttHeight, rScales, scrollSize]);
+  }, [ganttWidth, columnsWidth, ganttHeight, rScales, scrollSize]);
 
   const chartResizeHandler = useCallback(() => {
     const {
       ganttWidth: gw,
-      gridWidth: grw,
+      columnsWidth: cw,
       ganttHeight: gh,
       rScalesHeight: sh,
       scrollSize: ss,
     } = latestLayout.current;
     api.exec('resize-chart', {
-      width: gw - grw - ss - 4,
+      width: gw - cw - ss - 4, // resizer width
       height: gh - sh,
       scrollSize: ss,
     });
@@ -146,17 +145,12 @@ function Layout(props) {
   }, [rScrollTop]);
 
   const layoutRef = useRef(null);
-  const cleanupRef = useRef(null);
 
   useEffect(() => {
-    if (cleanupRef.current) {
-      cleanupRef.current.destroy();
-      cleanupRef.current = null;
-    }
     const node = layoutRef.current;
     if (!node) return;
 
-    cleanupRef.current = hotkeys(node, {
+    const cleanup = hotkeys(node, {
       keys: {
         'ctrl+c': true,
         'ctrl+v': true,
@@ -172,8 +166,7 @@ function Layout(props) {
     });
 
     return () => {
-      cleanupRef.current?.destroy();
-      cleanupRef.current = null;
+      cleanup?.destroy();
     };
   }, [undo]);
 
@@ -195,7 +188,6 @@ function Layout(props) {
             {rColumns.length ? (
               <>
                 <Grid
-                  columnWidth={columnsWidth}
                   readonly={readonly}
                   fullHeight={fullHeight}
                   onTableAPIChange={onTableAPIChange}

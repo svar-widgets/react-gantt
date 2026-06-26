@@ -6,7 +6,6 @@ import GanttExcelImport from './cases/GanttExcelImport.jsx';
 import GanttScales from './cases/GanttScales.jsx';
 import GanttGrid from './cases/GanttGrid.jsx';
 import GanttNoGrid from './cases/GanttNoGrid.jsx';
-import GanttFixedColumns from './cases/GanttFixedColumns.jsx';
 import GanttFlexColumns from './cases/GanttFlexColumns.jsx';
 import GanttReadOnly from './cases/GanttReadOnly.jsx';
 import GanttPreventActions from './cases/GanttPreventActions.jsx';
@@ -113,16 +112,16 @@ export const links = [
     'GanttFlexColumns',
   ],
   [
-    '/grid-fixed-columns/:skin',
-    'Fixed grid columns',
-    GanttFixedColumns,
-    'GanttFixedColumns',
-  ],
-  [
     '/grid-custom-columns/:skin',
     'Custom column content',
     GanttGrid,
     'GanttGrid',
+  ],
+  [
+    '/display-mode/:skin',
+    'Grid width and display',
+    GanttDisplayMode,
+    'GanttDisplayMode',
   ],
   ['/no-grid/:skin', 'No grid', GanttNoGrid, 'GanttNoGrid'],
   [
@@ -277,6 +276,5 @@ export const links = [
     'GanttMultiple',
   ],
   ['/fullscreen/:skin', 'Fullscreen', GanttFullscreen, 'GanttFullscreen'],
-  ['/display-mode/:skin', 'Display mode', GanttDisplayMode, 'GanttDisplayMode'],
   ['/locale/:skin', 'Locales', GanttLocale, 'GanttLocale'],
 ];

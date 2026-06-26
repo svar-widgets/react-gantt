@@ -3,3 +3,6 @@
   align-items: center;
   gap: 4px;
 }
+.container > div {
+  margin-top: 5px;
+}

@@ -22,6 +22,7 @@ import { EventBusRouter } from '@svar-ui/lib-state';
 import {
   DataStore,
   getDefaultColumns,
+  getDefaultGridWidth,
   defaultTaskTypes,
   normalizeZoom,
 } from '@svar-ui/gantt-store';
@@ -80,7 +81,7 @@ const Gantt = forwardRef(function Gantt(
     cellWidth = 100,
     cellHeight = 38,
     scaleHeight = 36,
-    gridWidth = 440,
+    gridWidth = null,
     displayMode = 'all',
     readonly = false,
     cellBorders = 'full',
@@ -126,14 +127,22 @@ const Gantt = forwardRef(function Gantt(
   // prepare configuration objects
   const lCalendar = useMemo(() => locale.getRaw().calendar, [locale]);
 
+  // default column set (incl. auto-added resources/wbs columns) drives the
+  // default grid width when none is provided by the user
+  const defaultGridColumns = useMemo(
+    () => getDefaultColumns({ resources: !!resources, wbs }),
+    [resources, wbs],
+  );
+  const resolvedGridWidth = useMemo(
+    () => gridWidth ?? getDefaultGridWidth(defaultGridColumns),
+    [gridWidth, defaultGridColumns],
+  );
+
   const normalizedConfig = useMemo(() => {
     let config = {
       zoom: prepareZoom(zoom, lCalendar),
       scales: prepareScales(scales, lCalendar),
-      columns: prepareColumns(
-        columns ?? getDefaultColumns({ resources: !!resources, wbs }),
-        lCalendar,
-      ),
+      columns: prepareColumns(columns ?? defaultGridColumns, lCalendar),
       links,
       cellWidth,
     };
@@ -149,7 +158,7 @@ const Gantt = forwardRef(function Gantt(
       };
     }
     return config;
-  }, [zoom, scales, columns, resources, wbs, links, cellWidth, lCalendar, locale]);
+  }, [zoom, scales, columns, defaultGridColumns, links, cellWidth, lCalendar, locale]);
 
   const firstInRoute = useMemo(() => dataStore.in, [dataStore]);
 
@@ -277,7 +286,7 @@ const Gantt = forwardRef(function Gantt(
       highlightTime,
       wbs,
       displayMode,
-      gridWidth,
+      gridWidth: resolvedGridWidth,
       cellBorders,
       _compactMode: compactMode,
     }),
@@ -315,7 +324,7 @@ const Gantt = forwardRef(function Gantt(
       highlightTime,
       wbs,
       displayMode,
-      gridWidth,
+      resolvedGridWidth,
       cellBorders,
       compactMode,
     ],

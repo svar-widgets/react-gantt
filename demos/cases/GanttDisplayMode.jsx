@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getData } from '../data';
 import { Gantt } from '../../src/';
-import { Slider, RadioButtonGroup, Field, Button } from '@svar-ui/react-core';
+import { Slider, RadioButtonGroup, Field } from '@svar-ui/react-core';
 import './GanttDisplayMode.css';
 
 export default function GanttDisplayMode({ skinSettings }) {
@@ -14,8 +14,6 @@ export default function GanttDisplayMode({ skinSettings }) {
 		{ id: 'grid', label: 'Grid' },
 		{ id: 'chart', label: 'Chart' },
 	];
-
-	const [api, setApi] = useState();
 
 	return (
 		<div className="rows wx-K3mN9pQr">
@@ -37,24 +35,11 @@ export default function GanttDisplayMode({ skinSettings }) {
 						step={50}
 					/>
 				</Field>
-				<div>
-					<Field label="For test only(action):" position={'left'}>
-						{['all', 'grid', 'chart'].map(mode => (
-							<Button
-								key={mode}
-								onClick={() => api.exec('set-display-mode', { mode })}
-							>
-								{mode}
-							</Button>
-						))}
-					</Field>
-				</div>
 			</div>
 
 			<div className="gtcell wx-K3mN9pQr">
 				<Gantt
 					{...skinSettings}
-					init={setApi}
 					tasks={data.tasks}
 					links={data.links}
 					scales={data.scales}

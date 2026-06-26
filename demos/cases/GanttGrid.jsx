@@ -8,7 +8,7 @@ import AddTaskCell from '../custom/AddTaskCell.jsx';
 function GanttGrid({ skinSettings }) {
   const columns = useMemo(
     () => [
-      { id: 'text', header: 'Task', width: 220, cell: NameAndDateCell },
+      { id: 'text', header: 'Task', flexgrow: 1, cell: NameAndDateCell },
       { id: 'assigned', header: 'Assigned', width: 160, cell: AvatarCell },
       {
         id: 'add-task',
@@ -29,6 +29,7 @@ function GanttGrid({ skinSettings }) {
       links={data.links}
       scales={data.scales}
       columns={columns}
+      gridWidth={460}
       cellHeight={40}
     />
   );

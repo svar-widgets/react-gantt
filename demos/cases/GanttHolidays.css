@@ -1,0 +1,19 @@
+.demo.wx-aabQtWhE {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar.wx-aabQtWhE {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  gap: 20px;
+  border-bottom: var(--wx-gantt-border);
+}
+
+.gantt.wx-aabQtWhE {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}

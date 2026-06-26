@@ -35,7 +35,7 @@ function GanttFilterInline({ skinSettings }) {
 
   const columns = useMemo(
     () => [
-      { id: 'text', header: ['Task name', textfilter], width: 200 },
+      { id: 'text', header: ['Task name', textfilter], flexgrow: 1 },
       {
         id: 'start',
         header: ['Start date', datefilter],
@@ -76,6 +76,7 @@ function GanttFilterInline({ skinSettings }) {
             {...skinSettings}
             tasks={tasks}
             columns={columns}
+            gridWidth={600}
             links={data.links}
             scales={data.scales}
             zoom

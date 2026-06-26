@@ -15,6 +15,7 @@ import storeContext from '../../context';
 import { useStore, useStoreWithCounter } from '@svar-ui/lib-react';
 import './Chart.css';
 import TimeScales from './TimeScale.jsx';
+import { createZoomWheelHandler } from '../../helpers/zoom';
 import { useRenderTime } from '../../helpers/debug.js';
 
 function Chart(props) {
@@ -105,47 +106,18 @@ function Chart(props) {
     dataRequest();
   }, [rScrollTop, chartHeight, cellHeight]);
 
-  const lastWheelTimeRef = useRef(performance.now());
-  const pendingRef = useRef(false);
-  const MAX_ZOOM_RATE = 0.003;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
 
-  function clamp(value, min, max) {
-    return Math.max(Math.min(value, max), min);
-  }
-
-  function getZoomFactor(evDelta) {
-    const isTouchpad = Math.abs(evDelta) < 50;
-    const SENSITIVITY = isTouchpad ? 0.004 : 0.01;
-    const now = performance.now();
-    const dt = Math.min(now - lastWheelTimeRef.current, 50);
-    lastWheelTimeRef.current = now;
-    const normalized = clamp(
-      -evDelta * SENSITIVITY,
-      -MAX_ZOOM_RATE * dt,
-      MAX_ZOOM_RATE * dt,
-    );
-    return Math.exp(normalized);
-  }
-
-  const onWheel = useCallback((e) => {
-    if (zoom && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      const el = chartRef.current;
-      const ratio = getZoomFactor(e.deltaY);
-      const offset = e.clientX - (el ? el.getBoundingClientRect().left : 0);
-      if (!pendingRef.current) {
-        pendingRef.current = true;
-        requestAnimationFrame(() => {
-          api.exec('zoom-scale', {
-            dir: ratio > 1 ? 1 : -1,
-            ratio: Math.abs(1 - ratio),
-            offset,
-          });
-          pendingRef.current = false;
-        });
-      }
-    }
-  }, [zoom, api]);
+  const onWheel = useMemo(
+    () =>
+      createZoomWheelHandler(
+        api,
+        () => zoomRef.current,
+        () => chartRef.current,
+      ),
+    [api],
+  );
 
   function getHoliday(cell) {
     const style = highlightTime?.(cell.date, cell.unit);
@@ -158,11 +130,7 @@ function Chart(props) {
   }
 
   const holidays = useMemo(() => {
-    if (
-      (scales.minUnit !== 'hour' && scales.minUnit !== 'day') ||
-      !highlightTime
-    )
-      return null;
+    if (!highlightTime) return null;
     const cells = scales.rows[scales.rows.length - 1].cells;
     return cells.slice(xArea.start, xArea.end).map(getHoliday);
   }, [scales, highlightTime, xArea]);
@@ -271,13 +239,10 @@ function Chart(props) {
     };
   }, [chartRef.current]);
 
-  const cleanupRef = useRef(null);
-
   useEffect(() => {
     const el = chartRef.current;
     if (!el) return;
-    if (cleanupRef.current) return;
-    cleanupRef.current = hotkeys(el, {
+    const cleanup = hotkeys(el, {
       keys: {
         arrowup: true,
         arrowdown: true,
@@ -285,8 +250,7 @@ function Chart(props) {
       exec: (v) => handleHotkey(v),
     });
     return () => {
-      cleanupRef.current?.destroy();
-      cleanupRef.current = null;
+      cleanup?.destroy();
     };
   }, []);
 

@@ -2,6 +2,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -22,11 +23,11 @@ import {
   getFlexBasis,
   getScrollX,
   getFitColumns,
+  getFillColumn,
+  getColumnsWidth,
   getSortMarks,
-  adjustColumns,
-  checkFlex,
 } from '../../helpers/grid';
-import { useWritableProp, useStore } from '@svar-ui/lib-react';
+import { useStore } from '@svar-ui/lib-react';
 import storeContext from '../../context';
 import './Grid.css';
 
@@ -47,8 +48,8 @@ function cssTextToStyle(cssText) {
 }
 
 export default function Grid(props) {
-  const { readonly, columnWidth: columnWidthProp = 0, onTableAPIChange } = props;
-  const [columnWidth, setColumnWidthProp] = useWritableProp(columnWidthProp);
+  const { readonly, onTableAPIChange } = props;
+  const [columnWidth, setColumnWidth] = useState(0);
   const [tableAPI, setTableAPI] = useState();
 
   const i18n = useContext(context.i18n);
@@ -72,7 +73,6 @@ export default function Grid(props) {
   const gridWidthVal = useStore(api, 'gridWidth');
   const displayModeVal = useStore(api, 'displayMode');
   const compactModeVal = useStore(api, '_compactMode');
-  const gridCollapseThresholdVal = useStore(api, '_gridCollapseThreshold');
 
   const [dragTask, setDragTask] = useState(null);
 
@@ -129,7 +129,6 @@ export default function Grid(props) {
   const tableContainerRef = useRef(null);
   const [gridClientWidth, setGridClientWidth] = useState(0);
   const [gridClientHeight, setGridClientHeight] = useState(0);
-  const [updateFlex, setUpdateFlex] = useState(false);
 
   useEffect(() => {
     const node = tableContainerRef.current;
@@ -250,6 +249,10 @@ export default function Grid(props) {
     return cols;
   }, [columnsVal, _, readonly, compactModeVal]);
 
+  useLayoutEffect(() => {
+    setColumnWidth(getColumnsWidth(cols));
+  }, [cols]);
+
   const getColumnStyle = useCallback((col) => {
     let style = `wx-rHj6070p wx-text-${col.align} `;
 
@@ -310,47 +313,9 @@ export default function Grid(props) {
     [selectedVal],
   );
 
-  const hasFlexCol = useMemo(() => {
-    // updateFlex is used to trigger re-evaluation
-    void updateFlex;
-    return checkFlex(cols);
-  }, [cols, updateFlex]);
-
   const fitColumns = useMemo(
-    () =>
-      getFitColumns(
-        cols,
-        columnWidth,
-        displayModeVal,
-        gridClientWidth,
-        gridWidthVal,
-        hasFlexCol,
-        gridCollapseThresholdVal,
-      ),
-    [
-      cols,
-      columnWidth,
-      displayModeVal,
-      gridClientWidth,
-      gridWidthVal,
-      hasFlexCol,
-      gridCollapseThresholdVal,
-    ],
-  );
-
-  const setColumnWidth = useCallback(
-    (resized) => {
-      if (!checkFlex(cols)) {
-        const newColumnWidth = fitColumns.reduce((acc, col) => {
-          if (resized && col.$width) col.$width = col.width;
-          return acc + (col.hidden ? 0 : col.width);
-        }, 0);
-        if (newColumnWidth !== columnWidth) setColumnWidthProp(newColumnWidth);
-      }
-      setUpdateFlex(true);
-      setUpdateFlex(false);
-    },
-    [cols, fitColumns, columnWidth, setColumnWidthProp],
+    () => getFitColumns(cols, displayModeVal),
+    [cols, displayModeVal],
   );
 
   const onDblClick = useCallback(
@@ -479,10 +444,6 @@ export default function Grid(props) {
     [api, execAction, tableAPI],
   );
 
-  const adjustColumnsCb = useCallback(() => {
-    adjustColumns(cols);
-  }, [cols]);
-
   // FIXME - temporary hack to provide fresh values to grid's handlers
   const handlersStateRef = useRef(null);
   const setHandlersState = () => {
@@ -491,7 +452,7 @@ export default function Grid(props) {
       handleHotkey,
       sortVal,
       api,
-      adjustColumns: adjustColumnsCb,
+      cols,
       setColumnWidth,
       tasks,
       durationUnitVal,
@@ -507,7 +468,7 @@ export default function Grid(props) {
     handleHotkey,
     sortVal,
     api,
-    adjustColumnsCb,
+    cols,
     setColumnWidth,
     tasks,
     durationUnitVal,
@@ -545,13 +506,20 @@ export default function Grid(props) {
       return false;
     });
 
-    tapi.on('resize-column', () => {
-      handlersStateRef.current.setColumnWidth(true);
+    tapi.intercept('resize-column', (ev) => {
+      ev.flexgrowFallback = getFillColumn(handlersStateRef.current.cols, ev.id);
     });
 
-    tapi.on('hide-column', (ev) => {
-      if (!ev.mode) handlersStateRef.current.adjustColumns();
-      handlersStateRef.current.setColumnWidth();
+    tapi.on('resize-column', (ev) => {
+      const columns = tapi.getState().columns;
+      handlersStateRef.current.setColumnWidth(getColumnsWidth(columns));
+      if (ev.inProgress !== true) api.exec('set-columns', { columns });
+    });
+
+    tapi.on('hide-column', () => {
+      const columns = tapi.getState().columns;
+      handlersStateRef.current.setColumnWidth(getColumnsWidth(columns));
+      api.exec('set-columns', { columns });
     });
 
     tapi.intercept('update-cell', (e) => {

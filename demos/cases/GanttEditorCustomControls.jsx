@@ -60,7 +60,7 @@ export default function GanttEditorCustomControls({ skinSettings }) {
 
   const columns = useMemo(
     () => [
-      { id: 'text', header: 'Task name', width: 220 },
+      { id: 'text', header: 'Task name', flexgrow: 1 },
       { id: 'assigned', header: 'Assigned', width: 160, cell: AvatarCell },
       { id: 'start', header: 'Start Date', width: 100 },
     ],
@@ -77,6 +77,7 @@ export default function GanttEditorCustomControls({ skinSettings }) {
         scales={data.scales}
         lengthUnit="hour"
         columns={columns}
+        gridWidth={480}
       />
       {api && <Editor api={api} items={items} />}
     </>

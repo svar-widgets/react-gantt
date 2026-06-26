@@ -6,7 +6,7 @@ import './Links.css';
 
 export default function Links({ onSelectLink, selectedLink, readonly }) {
   const api = useContext(storeContext);
-  const links = useStore(api, '_links');
+  const links = useStore(api, '_visibleLinks');
   const criticalPath = useStore(api, 'criticalPath');
 
   const selectedLineRef = useRef(null);
