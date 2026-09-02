@@ -2,7 +2,7 @@
 	
 # SVAR React Gantt Chart
 
-[Website](https://svar.dev/react/gantt/) • [Getting Started](https://docs.svar.dev/react/gantt/getting-started/quickstart/) • [Live Demos](https://docs.svar.dev/react/gantt/samples/)
+[Website](https://svar.dev/react/gantt/) • [Getting Started](https://docs.svar.dev/react/gantt/getting_started/) • [Live Demos](https://docs.svar.dev/react/gantt/samples/)
 
 [![npm](https://img.shields.io/npm/v/@svar-ui/react-gantt.svg)](https://www.npmjs.com/package/@svar-ui/react-gantt)
 [![License](https://img.shields.io/github/license/svar-widgets/react-gantt)](https://github.com/svar-widgets/react-gantt/blob/main/license.txt)
@@ -102,12 +102,12 @@ export default function MyComponent() {
 }
 ```
 
-See the [getting started guide](https://docs.svar.dev/react/gantt/getting-started/quickstart/) to learn how to configure data sources, customize columns, and enable editing.
+See the [getting started guide](https://docs.svar.dev/react/gantt/getting_started/) to learn how to configure data sources, customize columns, and enable editing.
 
 You'll also find integration guides for:
 
-- [Next.js demo](https://github.com/svar-widgets/react-gantt-demo-nextjs) & [guide](https://docs.svar.dev/react/gantt/integration-guides/nextjs/setup/)
-- State management: [Redux](https://docs.svar.dev/react/gantt/integration-guides/redux/), [Zustand](https://docs.svar.dev/react/gantt/integration-guides/zustand/), [MobX](https://docs.svar.dev/react/gantt/integration-guides/mobx/), [XState](https://docs.svar.dev/react/gantt/integration-guides/xstate/), [Jotai](https://docs.svar.dev/react/gantt/integration-guides/jotai/)
+- [Next.js demo](https://github.com/svar-widgets/react-gantt-demo-nextjs) & [guide](https://docs.svar.dev/react/gantt/category/nextjs/)
+- State management: [Redux](https://docs.svar.dev/react/gantt/integration-guides/integration-redux/), [Zustand](https://docs.svar.dev/react/gantt/integration-guides/integration-zustand/), [MobX](https://docs.svar.dev/react/gantt/integration-guides/integration-mobx/), [XState](https://docs.svar.dev/react/gantt/integration-guides/integration-xstate/), [Jotai](https://docs.svar.dev/react/gantt/integration-guides/integration-jotai/)
 
 ### ⭐ Show Your Support
 

@@ -5,11 +5,11 @@ import './Willow.css';
 function Willow({ fonts = true, children }) {
   return children ? (
     <CoreWillow fonts={fonts}>
-      <GridWillow>{children}</GridWillow>
+      <GridWillow fonts={fonts}>{children}</GridWillow>
     </CoreWillow>
   ) : (
     <>
-      <GridWillow />
+      <GridWillow fonts={fonts} />
       <CoreWillow fonts={fonts} />
     </>
   );

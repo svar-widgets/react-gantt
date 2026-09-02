@@ -6,7 +6,7 @@ export default function WillowDark({ fonts = true, children }) {
   if (children) {
     return (
       <WillowDarkCore fonts={fonts}>
-        <GridWillowDark>{children}</GridWillowDark>
+        <GridWillowDark fonts={fonts}>{children}</GridWillowDark>
       </WillowDarkCore>
     );
   } else {

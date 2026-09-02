@@ -31,6 +31,7 @@ import {
   getSortMarks,
   getResourceLoadColumns,
   getScrollbarWidth,
+  getColumnStyle,
 } from '../../helpers/grid';
 import { createZoomWheelHandler } from '../../helpers/zoom';
 
@@ -406,7 +407,7 @@ function ResourceLoad(props) {
                       rowHeight: cellHeight,
                       headerHeight: rScales ? rScales.height / headerLength : 0,
                     }}
-                    columnStyle={(col) => `wx-text-${col.align}`}
+                    columnStyle={getColumnStyle}
                     data={rResources || []}
                     columns={fitColumns}
                     sortMarks={sortMarks}

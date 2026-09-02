@@ -161,6 +161,8 @@ export default function Links({
   }
 
   function onEdit(id, column, value) {
+    if (column === 'lag' && value !== '') value = value * 1;
+
     const update = { [column]: value };
     if (column === 'type' && schedule?.auto) {
       if (value !== 'e2s') update.lag = '';

@@ -26,6 +26,7 @@ import {
   getFillColumn,
   getColumnsWidth,
   getSortMarks,
+  getColumnStyle,
 } from '../../helpers/grid';
 import { useStore } from '@svar-ui/lib-react';
 import storeContext from '../../context';
@@ -205,6 +206,9 @@ export default function Grid(props) {
         if (line.text) line.text = _(line.text);
       });
       col.header = header;
+      // in readonly mode we must disable column inline editors entirely.
+      // otherwise grid will open per-cell editors on dblclick.
+      col.editor = readonly ? null : col.editor;
       return col;
     });
 
@@ -252,15 +256,6 @@ export default function Grid(props) {
   useLayoutEffect(() => {
     setColumnWidth(getColumnsWidth(cols));
   }, [cols]);
-
-  const getColumnStyle = useCallback((col) => {
-    let style = `wx-rHj6070p wx-text-${col.align} `;
-
-    if (col.id === 'add-task') style += 'wx-action ';
-    else if (col.id === 'wbs') style += 'wx-wbs ';
-
-    return style.trim();
-  }, []);
 
   // SIZES
   // --------

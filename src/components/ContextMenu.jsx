@@ -40,7 +40,6 @@ const ContextMenu = forwardRef(function ContextMenu(
 ) {
   const menuRef = useRef(null);
   const activeIdRef = useRef(null);
-  const [activeTask, setActiveTask] = useState(null);
   // built imperatively before the menu opens, not derived from the store
   // (avoids rebuild churn on every store tick)
   const [menuOptions, setMenuOptions] = useState([]);
@@ -99,16 +98,7 @@ const ContextMenu = forwardRef(function ContextMenu(
     });
   }
 
-  // _selected lags behind single selection from resolver (setAsyncState)
-  const tasks = useMemo(
-    () =>
-      selectedTasksVal && selectedTasksVal.length
-        ? selectedTasksVal
-        : activeTask
-          ? [activeTask]
-          : [],
-    [selectedTasksVal, activeTask],
-  );
+  const tasks = useMemo(() => selectedTasksVal ?? [], [selectedTasksVal]);
 
   const buildOptions = useCallback(
     (tasksArg = tasks) => {
@@ -149,7 +139,6 @@ const ContextMenu = forwardRef(function ContextMenu(
         const result = resolver(id, ev);
         task = result === true ? task : result;
       }
-      setActiveTask(task);
 
       if (task) {
         const segmentIndex = locateID(ev.target, 'data-segment');
@@ -161,8 +150,8 @@ const ContextMenu = forwardRef(function ContextMenu(
           api && api.exec && api.exec('select-task', { id: task.id });
         }
 
-        // activeTask state update is async, so build with the freshly
-        // resolved task to mirror the Svelte `tasks` derived
+        // selectedTasksVal from the store lags within this callback, so build
+        // with the freshly resolved task to mirror the Svelte `tasks` derived
         const effectiveTasks =
           selectedTasksVal && selectedTasksVal.length
             ? selectedTasksVal
