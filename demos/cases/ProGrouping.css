@@ -1,0 +1,56 @@
+.demo.wx-R2uI6oP7 {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.bar.wx-R2uI6oP7 {
+  display: flex;
+  align-items: center;
+  border-bottom: var(--wx-gantt-border);
+  padding: 12px;
+  gap: 20px;
+}
+.gtcell.wx-R2uI6oP7 {
+  position: relative;
+  overflow: hidden;
+  height: calc(100% - 60px);
+  border-top: var(--wx-gantt-border);
+}
+
+.demo.wx-R2uI6oP7 .wx-field {
+  display: flex;
+  align-items: center !important;
+}
+
+.switch.wx-R2uI6oP7 {
+  display: flex;
+  align-items: center !important;
+  gap: 8px;
+  & .wx-field {
+    width: auto;
+  }
+  & .wx-label {
+    width: auto !important;
+    padding-top: 2px !important;
+    white-space: nowrap;
+  }
+}
+
+/* select styles */
+.select.wx-R2uI6oP7 {
+  width: 200px;
+  & .wx-field > .wx-label {
+    width: 65px !important;
+    padding-top: 2px !important;
+  }
+  & .wx-field-control {
+    max-width: calc(100% - 65px) !important;
+  }
+}
+.select-dropdown .wx-item[data-id=':none'] {
+  color: #888;
+}

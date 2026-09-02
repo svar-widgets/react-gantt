@@ -1,0 +1,25 @@
+.rows.wx-aabat62F {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.bar.wx-aabat62F {
+  display: flex;
+  height: 60px;
+  font-family: var(--wx-font-family);
+  font-size: var(--wx-font-size);
+  padding-top: 12px;
+  --wx-label-width: 130px;
+}
+
+.bar.wx-aabat62F:first-child {
+  margin-left: 10px;
+}
+
+.gtcell.wx-aabat62F {
+  height: 100%;
+  border-top: var(--wx-gantt-border);
+  overflow: hidden;
+}
