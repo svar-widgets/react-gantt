@@ -1,4 +1,11 @@
-import { Fragment, useState, useEffect, useMemo, useContext } from 'react';
+import {
+  Fragment,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useContext,
+} from 'react';
 import { context } from '@svar-ui/react-core';
 import { useStore, useStoreWithCounter } from '@svar-ui/lib-react';
 
@@ -11,19 +18,16 @@ export default function Links({
   api,
   autoSave,
   onExtChange,
-  predecessors = null,
-  successors = null,
   batch = 'links',
+  edits = null,
 }) {
   const i18n = useContext(context.i18n);
   const _ = useMemo(() => i18n.getGroup('gantt'), [i18n]);
 
   const activeTask = useStore(api, 'activeTask');
-  const _activeTask = useStore(api, '_activeTask');
   const [links, linksCounter] = useStoreWithCounter(api, 'links');
   const tasks = useStore(api, 'tasks');
   const schedule = useStore(api, 'schedule');
-  const unscheduledTasks = useStore(api, 'unscheduledTasks');
 
   const list = useMemo(
     () => [
@@ -35,17 +39,39 @@ export default function Links({
     [_],
   );
 
-  function lagEditorHandler(row) {
-    return row.type === 'e2s'
-      ? { type: 'text', config: { type: 'number' } }
-      : null;
+  const [linksData, setLinksData] = useState();
+
+  // column editors are called lazily by the grid: read the latest values
+  const linksRef = useRef(links);
+  linksRef.current = links;
+  const linksDataRef = useRef(linksData);
+  linksDataRef.current = linksData;
+
+  function getTypeOptions(row) {
+    const link = linksRef.current.byId(row.id);
+    if (!link) return list;
+    const taken = getPairTypes(link, row.id);
+    const check = api.getLinkValidator();
+    return list.filter(
+      ({ id: type }) =>
+        type === row.type || (!taken.has(type) && !check({ ...link, type })),
+    );
   }
 
-  const isLagHidden = useMemo(
-    () =>
-      !schedule?.auto || (unscheduledTasks && _activeTask?.unscheduled),
-    [schedule, unscheduledTasks, _activeTask],
-  );
+  function getPairTypes(link, except) {
+    const out = new Set();
+    (linksDataRef.current || []).forEach((group) =>
+      group.data.forEach((row) => {
+        if (row.id === except) return;
+        const other = linksRef.current.byId(row.id);
+        if (other?.source === link.source && other.target === link.target)
+          out.add(row.type);
+      }),
+    );
+    return out;
+  }
+
+  const isLagHidden = useMemo(() => !schedule?.auto, [schedule]);
 
   function getColumns() {
     return [
@@ -57,7 +83,7 @@ export default function Links({
       {
         id: 'lag',
         header: _('Lag'),
-        editor: lagEditorHandler,
+        editor: { type: 'text', config: { type: 'number' } },
         flexgrow: 1,
         hidden: isLagHidden,
       },
@@ -66,12 +92,13 @@ export default function Links({
         header: _('Type'),
         width: 124,
         options: list,
-        editor: {
+        editor: (row) => ({
           type: 'richselect',
           config: {
             cell: LinkTypeCell,
+            options: getTypeOptions(row),
           },
-        },
+        }),
         cell: LinkTypeCell,
       },
       {
@@ -85,78 +112,54 @@ export default function Links({
   }
 
   function getLinksData() {
-    if (activeTask) {
-      const il = [];
-      const ol = [];
-
-      if (!predecessors || !successors) {
-        links.forEach((l) => {
-          if (!predecessors && l.target === activeTask) il.push(l);
-          if (!successors && l.source === activeTask) ol.push(l);
-        });
-      }
-
-      const inLinks =
-        predecessors ||
-        il.map((link) => {
-          const { id, lag, type, source } = link;
-          return {
-            id,
-            type,
-            lag,
-            taskText: tasks.byId(source).text,
-          };
-        });
-
-      const outLinks =
-        successors ||
-        ol.map((link) => {
-          const { id, lag, type, target } = link;
-          return {
-            id,
-            type,
-            lag,
-            taskText: tasks.byId(target).text,
-          };
-        });
-
-      return [
-        { title: _('Predecessors'), data: inLinks },
-        { title: _('Successors'), data: outLinks },
-      ];
-    }
+    if (!activeTask) return;
+    const inLinks = [];
+    const outLinks = [];
+    const toRow = (link, other) => ({
+      id: link.id,
+      type: link.type,
+      lag: link.lag,
+      taskText: tasks.byId(other).text,
+    });
+    links.forEach((saved) => {
+      const edit = edits?.get(saved.id);
+      if (edit?.action === 'delete-link') return;
+      const link = edit ? { ...saved, ...edit.data.link } : saved;
+      if (link.target === activeTask) inLinks.push(toRow(link, link.source));
+      if (link.source === activeTask) outLinks.push(toRow(link, link.target));
+    });
+    return [
+      { title: _('Predecessors'), data: inLinks },
+      { title: _('Successors'), data: outLinks },
+    ];
   }
-
-  const [linksData, setLinksData] = useState();
 
   useEffect(() => {
     setLinksData(getLinksData());
-  }, [activeTask, links, linksCounter, tasks, predecessors, successors]);
+  }, [activeTask, links, linksCounter, tasks, edits]);
+
+  function getActionData(evData) {
+    return { view: 'links', event: evData };
+  }
 
   function onDeleteAction(id) {
     if (autoSave) {
       api.exec('delete-link', { id });
     } else {
-      setLinksData((prev) => {
-        const next = (prev || []).map((group) => ({
+      setLinksData((prev) =>
+        (prev || []).map((group) => ({
           ...group,
           data: group.data.filter((item) => item.id !== id),
-        }));
-        onExtChange &&
-          onExtChange({
-            view: 'links',
-            event: {
-              id,
-              action: 'delete-link',
-              data: { id },
-            },
-            values: {
-              predecessors: next[0].data,
-              successors: next[1].data,
-            },
-          });
-        return next;
-      });
+        })),
+      );
+      onExtChange &&
+        onExtChange(
+          getActionData({
+            id,
+            action: 'delete-link',
+            data: { id },
+          }),
+        );
     }
   }
 
@@ -164,9 +167,6 @@ export default function Links({
     if (column === 'lag' && value !== '') value = value * 1;
 
     const update = { [column]: value };
-    if (column === 'type' && schedule?.auto) {
-      if (value !== 'e2s') update.lag = '';
-    }
 
     if (autoSave) {
       api.exec('update-link', {
@@ -174,35 +174,29 @@ export default function Links({
         link: update,
       });
     } else {
-      setLinksData((prev) => {
-        const next = (prev || []).map((group) => ({
+      setLinksData((prev) =>
+        (prev || []).map((group) => ({
           ...group,
           data: group.data.map((item) =>
             item.id === id ? { ...item, ...update } : item,
           ),
-        }));
-        onExtChange &&
-          onExtChange({
-            view: 'links',
-            event: {
+        })),
+      );
+      onExtChange &&
+        onExtChange(
+          getActionData({
+            id,
+            action: 'update-link',
+            data: {
               id,
-              action: 'update-link',
-              data: {
-                id,
-                link: update,
-              },
+              link: update,
             },
-            values: {
-              predecessors: next[0].data,
-              successors: next[1].data,
-            },
-          });
-        return next;
-      });
+          }),
+        );
     }
   }
 
-  const columns = useMemo(() => getColumns(), [_, list, isLagHidden]);
+  const columns = useMemo(() => getColumns(), [_, list, isLagHidden, api]);
 
   const isMessage =
     linksData && !linksData[0].data.length && !linksData[1].data.length;

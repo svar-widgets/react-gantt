@@ -1,12 +1,17 @@
 .demo.wx-0qqHrQ85 {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   height: 100%;
 }
 
+.hint.wx-0qqHrQ85 {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  color: var(--wx-color-font-alt);
+  border-bottom: var(--wx-gantt-border);
+}
+
 .gtcell.wx-0qqHrQ85 {
-  overflow: hidden;
-  border: var(--wx-gantt-border);
-  height: calc(100% - 32px);
+  flex: 1;
+  min-height: 0;
 }

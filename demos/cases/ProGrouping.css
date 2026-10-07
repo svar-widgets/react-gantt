@@ -21,8 +21,8 @@
   border-top: var(--wx-gantt-border);
 }
 
-.demo.wx-R2uI6oP7 .wx-field {
-  display: flex;
+.select.wx-R2uI6oP7 .wx-field,
+.switch.wx-R2uI6oP7 .wx-field {
   align-items: center !important;
 }
 

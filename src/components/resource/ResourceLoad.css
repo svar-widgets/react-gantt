@@ -22,6 +22,12 @@
   outline: none;
 }
 
+.wx-chart-collapsed.wx-aacPnv3E {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+}
+
 .wx-timescale-viewport.wx-aacPnv3E {
   flex: 0 0 auto;
   overflow: hidden;
@@ -175,10 +181,27 @@
 .wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-cell.wx-normal {
   background: var(--wx-gantt-load-normal-color);
 }
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-cell.wx-normal:hover {
+  background: var(--wx-gantt-load-normal-hover-color);
+}
 .wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-cell.wx-overload {
   background: var(--wx-gantt-load-danger-color);
 }
+.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-cell.wx-overload:hover {
+  background: var(--wx-gantt-load-danger-hover-color);
+}
+.wx-grid-scale-container.wx-histogram-grid.wx-aacPnv3E .wx-grid .wx-cell {
+  padding: 0;
+}
+.wx-grid-scale-container.wx-histogram-grid.wx-aacPnv3E
+  .wx-grid
+  .wx-cell[tabindex='0']:focus {
+  outline: none;
+}
 /* override load cell background for selected rows */
-.wx-grid-scale-container.wx-aacPnv3E .wx-grid .wx-row.wx-selected .wx-cell {
+.wx-grid-scale-container.wx-aacPnv3E
+  .wx-grid
+  .wx-row.wx-selected
+  .wx-cell:not(.wx-normal):not(.wx-overload) {
   background: var(--wx-table-select-background);
 }

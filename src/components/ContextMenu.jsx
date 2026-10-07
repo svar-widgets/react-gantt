@@ -9,7 +9,12 @@ import {
   useImperativeHandle,
 } from 'react';
 import { ContextMenu as WxContextMenu } from '@svar-ui/react-menu';
-import { handleAction, getMenuOptions, isHandledAction } from '@svar-ui/gantt-store';
+import {
+  handleAction,
+  getMenuOptions,
+  isHandledAction,
+  isPlaceholder,
+} from '@svar-ui/gantt-store';
 import { locale, locateID, locate } from '@svar-ui/lib-dom';
 import { en } from '@svar-ui/gantt-locales';
 import { en as coreEn } from '@svar-ui/core-locales';
@@ -130,7 +135,8 @@ const ContextMenu = forwardRef(function ContextMenu(
       if (
         locate(ev.target, 'data-menu-ignore')?.classList.contains(
           'wx-resource-load',
-        )
+        ) ||
+        isPlaceholder(id)
       )
         return null;
 
@@ -218,9 +224,13 @@ const ContextMenu = forwardRef(function ContextMenu(
         ref={menuRef}
         css={css}
       />
-      <span onContextMenu={onContextMenu} data-menu-ignore="true">
+      <div
+        style={{ display: 'contents' }}
+        onContextMenu={onContextMenu}
+        data-menu-ignore="true"
+      >
         {typeof children === 'function' ? children() : children}
-      </span>
+      </div>
     </>
   );
 

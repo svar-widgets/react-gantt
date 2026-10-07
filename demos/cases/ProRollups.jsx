@@ -44,6 +44,7 @@ function ProRollups({ skinSettings }) {
             tasks={data.tasks}
             links={data.links}
             baselines={showBaseline}
+            unscheduledTasks
           />
         </Tooltip>
         {api && <Editor api={api} />}

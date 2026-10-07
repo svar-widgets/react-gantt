@@ -8,6 +8,8 @@ export default function Links({ onSelectLink, selectedLink, readonly }) {
   const api = useContext(storeContext);
   const links = useStore(api, '_visibleLinks');
   const criticalPath = useStore(api, 'criticalPath');
+  const conflicts = useStore(api, '_conflicts');
+  const violated = conflicts?.links;
 
   const selectedLineRef = useRef(null);
 
@@ -47,7 +49,8 @@ export default function Links({ onSelectLink, selectedLink, readonly }) {
         const className =
           'wx-dkx3NwEn wx-line' +
           (criticalPath && link.critical ? ' wx-critical' : '') +
-          (!readonly ? ' wx-line-selectable' : '');
+          (!readonly ? ' wx-line-selectable' : '') +
+          (violated?.has(link.id) ? ' wx-violated' : '');
         return (
           <g
             className={className}
@@ -63,7 +66,10 @@ export default function Links({ onSelectLink, selectedLink, readonly }) {
       {!readonly && selectedLink && (
         <g
           ref={selectedLineRef}
-          className="wx-dkx3NwEn wx-line wx-line-selected wx-line-selectable wx-delete-link"
+          className={
+            'wx-dkx3NwEn wx-line wx-line-selected wx-line-selectable wx-delete-link' +
+            (violated?.has(selectedLink.id) ? ' wx-violated' : '')
+          }
           data-link-id={setID(selectedLink.id)}
         >
           <polyline

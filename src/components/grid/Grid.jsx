@@ -9,14 +9,19 @@ import {
 } from 'react';
 import { context } from '@svar-ui/react-core';
 import { locateID } from '@svar-ui/lib-dom';
-import { reorder } from '../../helpers/reorder';
-import { prepareEditTask } from '@svar-ui/gantt-store';
+import { reorder, followReorder } from '../../helpers/reorder';
+import {
+  prepareEditTask,
+  setTaskResources,
+  getHeaderLength,
+  isPlaceholder,
+  getPlaceholderTask,
+} from '@svar-ui/gantt-store';
 import { Grid as WxGrid } from '@svar-ui/react-grid';
 import TextCell from './TextCell.jsx';
 import ActionCell from './ActionCell.jsx';
 import ResourcesCell from './ResourcesCell.jsx';
 import EditorResourcesCell from './EditorResourcesCell.jsx';
-import { setTaskResources } from '../../helpers/setTaskResources.js';
 import {
   getGridMinHeight,
   getGridStyle,
@@ -49,7 +54,8 @@ function cssTextToStyle(cssText) {
 }
 
 export default function Grid(props) {
-  const { readonly, onTableAPIChange } = props;
+  const { readonly, section = 'grid', onTableAPIChange } = props;
+  const isSubGrid = section === 'subGrid';
   const [columnWidth, setColumnWidth] = useState(0);
   const [tableAPI, setTableAPI] = useState();
 
@@ -64,16 +70,26 @@ export default function Grid(props) {
   const areaVal = useStore(api, 'area');
   const rTasksVal = useStore(api, '_tasks');
   const scalesVal = useStore(api, '_scales');
-  const headerLengthVal = useStore(api, '_headerLength');
-  const columnsVal = useStore(api, 'columns');
+  const columnsVal = useStore(api, '_columns');
   const sortVal = useStore(api, '_sort');
   const durationUnitVal = useStore(api, 'durationUnit');
+  const inclusiveEndVal = useStore(api, 'inclusiveEnd');
   const splitTasksVal = useStore(api, 'splitTasks');
+  const unscheduledTasksVal = useStore(api, 'unscheduledTasks');
+  const inactiveTasksVal = useStore(api, 'inactiveTasks');
   const filterValuesVal = useStore(api, 'filterValues');
   const groupByVal = useStore(api, 'groupBy');
   const gridWidthVal = useStore(api, 'gridWidth');
-  const displayModeVal = useStore(api, 'displayMode');
+  const subGridWidthVal = useStore(api, 'subGridWidth');
+  const displayPanelsVal = useStore(api, '_displayPanels');
   const compactModeVal = useStore(api, '_compactMode');
+  const columnsWidthVal = useStore(api, '_columnsWidth');
+
+  const panelWidth = isSubGrid ? subGridWidthVal : gridWidthVal;
+  const fillRemaining = useMemo(
+    () => isSubGrid && !(displayPanelsVal || []).includes('chart'),
+    [isSubGrid, displayPanelsVal],
+  );
 
   const [dragTask, setDragTask] = useState(null);
 
@@ -84,10 +100,12 @@ export default function Grid(props) {
 
   const execAction = useCallback(
     (id, action) => {
+      // no task behind the placeholder to target
+      if (isPlaceholder(id)) return;
       if (action === 'add-task') {
         api.exec(action, {
           target: id,
-          task: { text: _('New Task') },
+          task: { text: _('New task') },
           mode: 'child',
           show: true,
           focus: id ? 'grid' : null,
@@ -98,7 +116,20 @@ export default function Grid(props) {
           api.exec(action, { id, mode: !task.open });
       }
     },
-    [tasks],
+    [api, _, tasks],
+  );
+
+  const createPlaceholder = useCallback(
+    (task) => {
+      const ev = {
+        task: getPlaceholderTask(task, _('New task')),
+        show: true,
+        eventSource: 'placeholder',
+      };
+      api.exec('add-task', ev);
+      return ev.id;
+    },
+    [api, _],
   );
 
   const onClick = useCallback(
@@ -116,14 +147,14 @@ export default function Grid(props) {
             toggle: e.ctrlKey || e.metaKey,
             range: e.shiftKey,
             show: 'xy',
-            focus: 'grid',
+            focus: isSubGrid ? 'subGrid' : 'grid',
           });
         }
       } else if (action === 'add-task') {
         execAction(null, action);
       }
     },
-    [api, execAction],
+    [api, execAction, isSubGrid],
   );
 
   const tableRef = useRef(null);
@@ -144,13 +175,19 @@ export default function Grid(props) {
     return () => ro.disconnect();
   }, []);
 
+  const reorderTask = useMemo(
+    () => (isSubGrid ? (rTasksVal || []).find((task) => task.$reorder) : null),
+    [isSubGrid, rTasksVal],
+  );
+
   const allTasks = useMemo(() => {
+    const extra = dragTask || reorderTask;
     const rows =
-      dragTask && !tasks.find((t) => t.id === dragTask.id)
-        ? [...tasks, dragTask]
+      extra && !tasks.find((t) => t.id === extra.id)
+        ? [...tasks, extra]
         : tasks;
     return rows.map((t) => ({ ...t }));
-  }, [tasks, dragTask]);
+  }, [tasks, dragTask, reorderTask]);
 
   const allTasksRef = useRef(allTasks);
   useEffect(() => {
@@ -158,6 +195,11 @@ export default function Grid(props) {
   }, [allTasks]);
 
   const lastDetailRef = useRef(null);
+
+  const groupByRef = useRef(groupByVal);
+  useEffect(() => {
+    groupByRef.current = groupByVal;
+  }, [groupByVal]);
 
   const reorderTasks = useCallback(
     (detail) => {
@@ -177,7 +219,12 @@ export default function Grid(props) {
           const task = allTasksRef.current[targetIndex];
           if (index - targetIndex === 1) {
             mode = 'before';
-          } else if (task && task.data && task.open) {
+          } else if (
+            !groupByRef.current?.field &&
+            task &&
+            task.data &&
+            task.open
+          ) {
             mode = 'before';
             target = task.data[0].id;
           }
@@ -199,6 +246,8 @@ export default function Grid(props) {
   // --------
 
   const cols = useMemo(() => {
+    // end-like column getters read the mode: new columns redraw the cells
+    // (inclusiveEndVal is a dependency of this memo)
     let cols = (columnsVal || []).map((col) => {
       col = { ...col };
       const header = [...col.header];
@@ -234,7 +283,7 @@ export default function Grid(props) {
         };
       }
     }
-    if (ai !== -1) {
+    if (ai !== -1 && !isSubGrid) {
       cols[ai].cell = cols[ai].cell || ActionCell;
       const header = cols[ai].header[0];
       cols[ai].header[0].cell = header.cell || ActionCell;
@@ -249,9 +298,13 @@ export default function Grid(props) {
       }
     }
 
+    cols = cols.filter((c) => (c.section || 'grid') === section);
     if (cols.length > 0) cols[cols.length - 1].resize = false;
     return cols;
-  }, [columnsVal, _, readonly, compactModeVal]);
+  }, [columnsVal, _, readonly, compactModeVal, inclusiveEndVal, section]);
+
+  const colsRef = useRef(cols);
+  colsRef.current = cols;
 
   useLayoutEffect(() => {
     setColumnWidth(getColumnsWidth(cols));
@@ -264,20 +317,37 @@ export default function Grid(props) {
   const headerHeight = useMemo(() => scalesVal?.height ?? 0, [scalesVal]);
 
   const flexBasis = useMemo(
-    () => getFlexBasis(columnsVal || [], displayModeVal, gridWidthVal),
-    [columnsVal, displayModeVal, gridWidthVal],
+    () =>
+      getFlexBasis(
+        columnsVal || [],
+        displayPanelsVal,
+        panelWidth,
+        section,
+        fillRemaining,
+      ),
+    [columnsVal, displayPanelsVal, panelWidth, section, fillRemaining],
   );
 
   const scrollX = useMemo(
     () =>
       getScrollX(
         compactModeVal,
-        displayModeVal,
+        displayPanelsVal,
         columnWidth,
         gridClientWidth,
-        gridWidthVal,
+        panelWidth,
+        section,
+        fillRemaining,
       ),
-    [compactModeVal, displayModeVal, columnWidth, gridClientWidth, gridWidthVal],
+    [
+      compactModeVal,
+      displayPanelsVal,
+      columnWidth,
+      gridClientWidth,
+      panelWidth,
+      section,
+      fillRemaining,
+    ],
   );
 
   const bodyOffset = useMemo(
@@ -288,16 +358,17 @@ export default function Grid(props) {
   const tableStyle = useMemo(() => {
     const css =
       getGridMinHeight(gridClientHeight, cellHeightVal ?? 0) +
-      getGridStyle(displayModeVal, columnWidth, scrollX);
+      getGridStyle(displayPanelsVal, columnWidth, scrollX, section);
     const style = cssTextToStyle(css);
     style['--wx-body-offset'] = `${bodyOffset}px`;
     return style;
   }, [
     gridClientHeight,
     cellHeightVal,
-    displayModeVal,
+    displayPanelsVal,
     columnWidth,
     scrollX,
+    section,
     bodyOffset,
   ]);
 
@@ -309,20 +380,33 @@ export default function Grid(props) {
   );
 
   const fitColumns = useMemo(
-    () => getFitColumns(cols, displayModeVal),
-    [cols, displayModeVal],
+    () =>
+      getFitColumns(
+        cols,
+        displayPanelsVal,
+        section,
+        'add-task',
+        columnsWidthVal,
+      ),
+    [cols, displayPanelsVal, section, columnsWidthVal],
+  );
+  const visibleHeaderLength = useMemo(
+    () => getHeaderLength(fitColumns),
+    [fitColumns],
   );
 
   const onDblClick = useCallback(
     (e) => {
       if (!readonly) {
         const id = locateID(e);
+        if (isPlaceholder(id)) return;
         const column = locateID(e, 'data-col-id');
         const columnObj = column && cols.find((c) => c.id === column);
-        if (!columnObj?.editor && id) api.exec('show-editor', { id });
+        if (!columnObj?.editor && id && !isSubGrid)
+          api.exec('show-editor', { id });
       }
     },
-    [api, readonly, cols],
+    [api, readonly, cols, isSubGrid],
   );
 
   const sortMarks = useMemo(
@@ -334,31 +418,39 @@ export default function Grid(props) {
     return sortMarks ? { ...filterValuesVal } : filterValuesVal;
   }, [sortMarks, filterValuesVal]);
 
-  const pendingFocusRef = useRef(false);
+  const focusFrameRef = useRef(0);
   useEffect(() => {
     if (!focusTask || !tableAPI) return;
 
-    const { id, column } = focusTask;
-    if (column) {
-      if (!pendingFocusRef.current) {
-        pendingFocusRef.current = true;
-        requestAnimationFrame(() => {
-          const { focusCell, editor } = tableAPI.getState();
-          if (!editor) {
-            tableAPI.exec('focus-cell', {
-              row: id,
-              column: focusCell?.column || cols[0]?.id,
-            });
-            pendingFocusRef.current = false;
-          }
+    const { id, section: focusSection } = focusTask;
+    if (focusSection !== (isSubGrid ? 'subGrid' : 'grid')) return;
+    if (focusFrameRef.current) return;
+    focusFrameRef.current = requestAnimationFrame(() => {
+      focusFrameRef.current = 0;
+      const { focusCell, editor } = tableAPI.getState();
+      if (!editor) {
+        tableAPI.exec('focus-cell', {
+          row: id,
+          column: focusCell?.column || colsRef.current[0]?.id,
         });
       }
-    }
-  }, [focusTask, tableAPI]);
+    });
+  }, [focusTask, tableAPI, isSubGrid]);
+
+  useEffect(() => {
+    return () => {
+      if (focusFrameRef.current) cancelAnimationFrame(focusFrameRef.current);
+      focusFrameRef.current = 0;
+    };
+  }, []);
 
   const startReorder = useCallback(
     ({ id }) => {
-      if (readonly) return false;
+      if (readonly || isSubGrid) return false;
+      if (groupByRef.current?.field) {
+        const task = api.getTask(id);
+        if (task.$group || task.data) return false;
+      }
 
       if (api.getTask(id).open) api.exec('open-task', { id, mode: false });
 
@@ -366,7 +458,7 @@ export default function Grid(props) {
       setDragTask(t || null);
       if (!t) return false;
     },
-    [api, readonly],
+    [api, readonly, isSubGrid],
   );
 
   const endReorder = useCallback(
@@ -399,16 +491,10 @@ export default function Grid(props) {
     [api, reorderTasks, scrollDelta],
   );
 
-  const groupByRef = useRef(groupByVal);
-  useEffect(() => {
-    groupByRef.current = groupByVal;
-  }, [groupByVal]);
-
   useEffect(() => {
     const node = tableRef.current;
     if (!node) return;
     const action = reorder(node, {
-      isDisabled: () => !!groupByRef.current?.field,
       start: startReorder,
       end: endReorder,
       move: moveReorder,
@@ -417,11 +503,18 @@ export default function Grid(props) {
     return action.destroy;
   }, [api, startReorder, endReorder, moveReorder]);
 
+  useEffect(() => {
+    const node = tableRef.current;
+    if (!node || !isSubGrid) return;
+    const action = followReorder(node, { api });
+    return action.destroy;
+  }, [api, isSubGrid]);
+
   const handleHotkey = useCallback(
     (ev) => {
       const { key, isInput } = ev;
       if (!isInput && (key === 'arrowup' || key === 'arrowdown')) {
-        ev.eventSource = 'grid';
+        ev.eventSource = isSubGrid ? 'subGrid' : 'grid';
         api.exec('hotkey', ev);
         return false;
       } else if (key === 'enter') {
@@ -436,7 +529,7 @@ export default function Grid(props) {
         }
       }
     },
-    [api, execAction, tableAPI],
+    [api, execAction, tableAPI, isSubGrid],
   );
 
   // FIXME - temporary hack to provide fresh values to grid's handlers
@@ -450,8 +543,11 @@ export default function Grid(props) {
       cols,
       setColumnWidth,
       tasks,
+      columnsVal,
       durationUnitVal,
       splitTasksVal,
+      unscheduledTasksVal,
+      createPlaceholder,
       onTableAPIChange,
     };
   };
@@ -466,12 +562,28 @@ export default function Grid(props) {
     cols,
     setColumnWidth,
     tasks,
+    columnsVal,
     durationUnitVal,
     splitTasksVal,
+    unscheduledTasksVal,
+    createPlaceholder,
     onTableAPIChange,
   ]);
 
+  // expose the table API while mounted, reset it on unmount
+  const tableAPIRef = useRef(null);
+  useEffect(() => {
+    const { onTableAPIChange } = handlersStateRef.current;
+    if (tableAPIRef.current && onTableAPIChange)
+      onTableAPIChange(tableAPIRef.current);
+    return () => {
+      const { onTableAPIChange } = handlersStateRef.current;
+      if (onTableAPIChange) onTableAPIChange(null);
+    };
+  }, []);
+
   const init = useCallback((tapi) => {
+    tableAPIRef.current = tapi;
     setTableAPI(tapi);
     tapi.intercept('hotkey', (ev) => handlersStateRef.current.handleHotkey(ev));
     tapi.intercept('select-row', () => false);
@@ -522,30 +634,47 @@ export default function Grid(props) {
       const task = handlersStateRef.current.tasks.find((t) => t.id === id);
 
       if (task) {
+        const { createPlaceholder } = handlersStateRef.current;
         if (column === 'resources') {
-          setTaskResources(id, value, api);
+          if (task.$placeholder) {
+            const history = api.getHistory();
+            if (history) history.startBatch();
+            const newId = createPlaceholder(task);
+            if (newId) setTaskResources(newId, value, api);
+            if (history) history.endBatch();
+          } else setTaskResources(id, value, api);
           return;
         }
 
-        const update = { ...task };
         let v = value;
-        if (v && !isNaN(v) && !(v instanceof Date)) v *= 1;
-        update[column] = v;
+        if (typeof v !== 'boolean' && v && !isNaN(v) && !(v instanceof Date))
+          v *= 1;
+        const update = { ...task };
+        const col = (handlersStateRef.current.columnsVal || []).find(
+          (c) => c.id === column,
+        );
+        if (col?.setter) col.setter(update, v);
+        else update[column] = v;
 
         prepareEditTask(
           update,
           {
             durationUnit: handlersStateRef.current.durationUnitVal,
             splitTasks: handlersStateRef.current.splitTasksVal,
+            unscheduledTasks: handlersStateRef.current.unscheduledTasksVal,
           },
           api.getTaskCalendar(update),
           column,
         );
 
-        api.exec('update-task', {
-          id: id,
-          task: update,
-        });
+        if (task.$placeholder) {
+          createPlaceholder(update);
+        } else {
+          api.exec('update-task', {
+            id: id,
+            task: update,
+          });
+        }
       }
       return false;
     });
@@ -555,8 +684,15 @@ export default function Grid(props) {
 
   return (
     <div
-      className="wx-rHj6070p wx-table-container"
-      style={{ flex: `0 0 ${flexBasis}` }}
+      className={
+        'wx-rHj6070p wx-table-container' +
+        (isSubGrid ? ' wx-table-container-subgrid' : '')
+      }
+      data-gantt-section={section}
+      style={{
+        flex: `${fillRemaining ? '1 1' : '0 0'} ${flexBasis}`,
+        minWidth: 0,
+      }}
       ref={tableContainerRef}
     >
       <div
@@ -570,11 +706,18 @@ export default function Grid(props) {
           init={init}
           sizes={{
             rowHeight: cellHeightVal,
-            headerHeight: (headerHeight ?? 0) / (headerLengthVal ?? 1),
+            headerHeight: (headerHeight ?? 0) / (visibleHeaderLength || 1),
           }}
-          rowStyle={(row) =>
-            row.$reorder ? 'wx-rHj6070p wx-reorder-task' : 'wx-rHj6070p'
-          }
+          rowStyle={(row) => {
+            let style = row.$placeholder
+              ? 'wx-placeholder-row'
+              : row.$reorder
+                ? 'wx-reorder-task'
+                : '';
+            if (inactiveTasksVal && row.inactive)
+              style += (style ? ' ' : '') + 'wx-inactive-row';
+            return 'wx-rHj6070p' + (style ? ' ' + style : '');
+          }}
           columnStyle={getColumnStyle}
           data={allTasks}
           columns={fitColumns}

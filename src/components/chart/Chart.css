@@ -57,6 +57,21 @@
   position: absolute;
 }
 
+.wx-progress-line.wx-mR7v2Xag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+
+.wx-progress-line-path {
+  fill: none;
+  stroke: var(--wx-gantt-progress-line-color, #f5953b);
+  stroke-width: var(--wx-gantt-progress-line-width, 1);
+}
+
 .wx-weekend.wx-mR7v2Xag {
   height: 100%;
   background: var(--wx-gantt-holiday-background);

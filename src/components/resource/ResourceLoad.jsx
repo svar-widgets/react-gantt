@@ -8,7 +8,14 @@ import {
   useCallback,
 } from 'react';
 import { locateID } from '@svar-ui/lib-dom';
-import { getResourceColumns, normalizeResourceColumns } from '@svar-ui/gantt-store';
+import {
+  getResourceColumns,
+  getResourceLoadColumns,
+  getResourceHistogramColumns,
+  normalizeResourceColumns,
+  getHeaderLength,
+  toggleGridChart,
+} from '@svar-ui/gantt-store';
 import { locale } from '@svar-ui/lib-dom';
 import { en } from '@svar-ui/gantt-locales';
 import { en as coreEn } from '@svar-ui/core-locales';
@@ -22,6 +29,8 @@ import Resizer from '../Resizer.jsx';
 import NameCell from './NameCell.jsx';
 import NameCellCompact from './NameCellCompact.jsx';
 import LoadCell from './LoadCell.jsx';
+import HistogramCell from './HistogramCell.jsx';
+import HistogramCapacityOverlay from './HistogramCapacityOverlay.jsx';
 
 import {
   getFlexBasis,
@@ -29,19 +38,28 @@ import {
   getFillColumn,
   getColumnsWidth,
   getSortMarks,
-  getResourceLoadColumns,
   getScrollbarWidth,
   getColumnStyle,
 } from '../../helpers/grid';
+import { getResizerUi } from '../../helpers/resizer.js';
 import { createZoomWheelHandler } from '../../helpers/zoom';
 
 import './ResourceLoad.css';
 
 function ResourceLoad(props) {
-  const { api, mode = 'grid', template } = props;
+  const {
+    api,
+    mode = 'utilization', // "utilization" | "histogram"
+    template,
+    histogram,
+    draggableRows = false,
+  } = props;
+
+  const overloadHeadroom = histogram?.overloadHeadroom;
+  const capacityLine = histogram?.capacityLine ?? true;
 
   const columns = useMemo(
-    () => props.columns || getResourceColumns(),
+    () => (props.columns === undefined ? getResourceColumns() : props.columns),
     [props.columns],
   );
 
@@ -56,23 +74,58 @@ function ResourceLoad(props) {
   const rScales = useStore(api, '_scales');
   const rResourceSort = useStore(api, '_resourceSort');
   const cellHeight = useStore(api, 'cellHeight');
-  const ganttColumns = useStore(api, 'columns');
+  const ganttColumns = useStore(api, '_columns');
   const gridWidth = useStore(api, 'gridWidth');
-  const displayMode = useStore(api, 'displayMode');
-  const headerLength = useStore(api, '_headerLength');
+  const displayPanels = useStore(api, '_displayPanels');
   const highlightTime = useStore(api, 'highlightTime');
   const columnsWidth = useStore(api, '_columnsWidth');
   const gridCollapseThreshold = useStore(api, '_gridCollapseThreshold');
   const cellBorders = useStore(api, 'cellBorders');
   const zoom = useStore(api, 'zoom');
+  const compactMode = useStore(api, '_compactMode');
+  // reactive copy for the histogram overlay; grid/timescale sync stays imperative below
+  const scrollLeft = useStore(api, 'scrollLeft');
 
   const lFromCtx = useContext(context.i18n);
   const l = useMemo(() => lFromCtx || locale({ ...en, ...coreEn }), [lFromCtx]);
   const _ = useMemo(() => l.getGroup('gantt'), [l]);
 
+  const [drag, setDrag] = useState(null);
+  const layoutPanels = drag?.panels ?? displayPanels;
+  const hasGrid = !!displayPanels?.includes('grid');
+  const chartVisible = !!displayPanels?.includes('chart');
+
+  const gridChartResizerUi = useMemo(
+    () => getResizerUi('gridChart', layoutPanels ?? [], compactMode),
+    [layoutPanels, compactMode],
+  );
+
+  function startDrag() {
+    setDrag({ panels: [...displayPanels] });
+  }
+
+  // the store fits the width to the gantt layout, incl. its subGrid
+  function resizeGrid(width, commit) {
+    api.exec('resize-grid', { width, inProgress: !commit });
+    if (commit) setDrag(null);
+  }
+
+  const onExpandStart = () => {
+    api.exec('set-display-mode', {
+      mode: toggleGridChart(displayPanels, 'start', compactMode),
+    });
+  };
+  const onExpandEnd = () => {
+    api.exec('set-display-mode', {
+      mode: toggleGridChart(displayPanels, 'end', compactMode),
+    });
+  };
+
   const [containerWidth, setContainerWidth] = useState(0);
   const [gridClientWidth, setGridClientWidth] = useState(0);
   const [rightContainerHeight, setRightContainerHeight] = useState(0);
+  const [rightContainerWidth, setRightContainerWidth] = useState(0);
+  const [rightScrollTop, setRightScrollTop] = useState(0);
 
   const containerRef = useRef(null);
   const gridContainerRef = useRef(null);
@@ -111,18 +164,18 @@ function ResourceLoad(props) {
       if (cols[ni].cell) cols[ni]._cell = cols[ni].cell;
       cols[ni] = {
         ...cols[ni],
-        header: displayMode === 'chart' ? '' : cols[ni].header,
-        cell: displayMode === 'chart' ? NameCellCompact : NameCell,
+        header: hasGrid ? cols[ni].header : '',
+        cell: hasGrid ? NameCell : NameCellCompact,
       };
     }
 
     if (cols.length > 0) cols[cols.length - 1].resize = false;
     return cols;
-  }, [columns, _, displayMode]);
+  }, [columns, _, hasGrid]);
 
   const sortMarks = useMemo(
     () => getSortMarks(rResources, rResourceSort),
-    [rResources, rResourceSort]
+    [rResources, rResourceSort],
   );
 
   const [columnWidth, setColumnWidth] = useState(0);
@@ -130,14 +183,18 @@ function ResourceLoad(props) {
   useEffect(() => {
     let width;
     if (columnsWidth) width = columnsWidth;
-    else if (displayMode === 'chart') width = gridCollapseThreshold || 0;
-    else width = gridWidth;
+    else if (hasGrid) width = gridWidth;
+    else width = gridCollapseThreshold || 0;
     setColumnWidth((prev) => (prev === width ? prev : width));
-  }, [columnsWidth, displayMode, gridCollapseThreshold, gridWidth]);
+  }, [columnsWidth, hasGrid, gridCollapseThreshold, gridWidth]);
 
   const fitColumns = useMemo(
-    () => getFitColumns(finalColumns, displayMode, 'name'),
-    [finalColumns, displayMode]
+    () => getFitColumns(finalColumns, displayPanels || [], 'grid', 'name'),
+    [finalColumns, displayPanels],
+  );
+  const visibleHeaderLength = useMemo(
+    () => getHeaderLength(fitColumns),
+    [fitColumns],
   );
 
   const finalColumnsRef = useRef(finalColumns);
@@ -146,20 +203,25 @@ function ResourceLoad(props) {
   }, [finalColumns]);
 
   const rightColumns = useMemo(
-    () => getResourceLoadColumns(rScales, LoadCell, template),
-    [rScales, template]
+    () =>
+      mode === 'histogram'
+        ? getResourceHistogramColumns(rScales, HistogramCell, {
+            overloadHeadroom,
+          })
+        : getResourceLoadColumns(rScales, LoadCell, template),
+    [mode, rScales, overloadHeadroom, template],
   );
 
   const flexBasis = useMemo(
-    () => getFlexBasis(ganttColumns || [], displayMode, gridWidth),
-    [ganttColumns, displayMode, gridWidth]
+    () => getFlexBasis(ganttColumns || [], displayPanels || [], gridWidth),
+    [ganttColumns, displayPanels, gridWidth],
   );
 
   // right grid V-scroll eats one scrollbar width on the right; timescales
   // must match so the time axis aligns at horizontal-max.
   const rightHasHScroll = useMemo(
     () => (rScales?.width ?? 0) > containerWidth - gridClientWidth,
-    [rScales, containerWidth, gridClientWidth]
+    [rScales, containerWidth, gridClientWidth],
   );
 
   const rightHasVScroll = useMemo(() => {
@@ -178,8 +240,9 @@ function ResourceLoad(props) {
   // left grid only overflows once its own X scrollbar appears. If the Y
   // scrollbar is clipped, that hidden strip also delays the X overflow.
   const leftHasHScroll = useMemo(
-    () => columnWidth > gridClientWidth + (rightHasVScroll ? scrollbarWidth : 0),
-    [columnWidth, gridClientWidth, rightHasVScroll, scrollbarWidth]
+    () =>
+      columnWidth > gridClientWidth + (rightHasVScroll ? scrollbarWidth : 0),
+    [columnWidth, gridClientWidth, rightHasVScroll, scrollbarWidth],
   );
 
   const syncHorizontalScroll = useCallback((left) => {
@@ -237,8 +300,10 @@ function ResourceLoad(props) {
         setContainerWidth(containerRef.current.offsetWidth);
       if (gridContainerRef.current)
         setGridClientWidth(gridContainerRef.current.clientWidth);
-      if (scaleContainerRef.current)
+      if (scaleContainerRef.current) {
         setRightContainerHeight(scaleContainerRef.current.clientHeight);
+        setRightContainerWidth(scaleContainerRef.current.clientWidth);
+      }
     });
     if (containerRef.current) ro.observe(containerRef.current);
     if (gridContainerRef.current) ro.observe(gridContainerRef.current);
@@ -248,8 +313,10 @@ function ResourceLoad(props) {
       setContainerWidth(containerRef.current.offsetWidth);
     if (gridContainerRef.current)
       setGridClientWidth(gridContainerRef.current.clientWidth);
-    if (scaleContainerRef.current)
+    if (scaleContainerRef.current) {
       setRightContainerHeight(scaleContainerRef.current.clientHeight);
+      setRightContainerWidth(scaleContainerRef.current.clientWidth);
+    }
     return () => ro.disconnect();
   }, []);
 
@@ -305,7 +372,9 @@ function ResourceLoad(props) {
 
   const initRight = useCallback((rapi) => {
     rightApiRef.current = rapi;
-    handlersStateRef.current.syncHorizontalScroll(expectedScrollLeftRef.current);
+    handlersStateRef.current.syncHorizontalScroll(
+      expectedScrollLeftRef.current,
+    );
 
     rapi.on('select-row', (ev) => {
       setSelectedRows((prev) => (prev[0] === ev.id ? prev : [ev.id]));
@@ -332,13 +401,14 @@ function ResourceLoad(props) {
           top: ev.top,
           rSync: true,
         });
+      if (ev.top !== undefined) setRightScrollTop(ev.top);
     });
   }, []);
 
   function getCellStyle(row, col) {
-    const value = getValue(row, col);
-    if (value) {
-      return value.percent > 100 ? ' wx-overload' : ' wx-normal';
+    if (mode !== 'histogram') {
+      const value = getValue(row, col);
+      if (value) return value.percent > 100 ? 'wx-overload' : 'wx-normal';
     }
 
     if (col.unit !== 'day' && col.unit !== 'hour') return '';
@@ -397,31 +467,49 @@ function ResourceLoad(props) {
               ref={gridContainerRef}
             >
               <div className="wx-y-bar-clip wx-aacPnv3E">
-                <div
-                  className="wx-resource-grid wx-aacPnv3E"
-                  onClick={onClick}
-                >
+                <div className="wx-resource-grid wx-aacPnv3E" onClick={onClick}>
                   <Grid
                     init={initLeft}
                     sizes={{
                       rowHeight: cellHeight,
-                      headerHeight: rScales ? rScales.height / headerLength : 0,
+                      headerHeight: rScales
+                        ? rScales.height / visibleHeaderLength
+                        : 0,
                     }}
                     columnStyle={getColumnStyle}
                     data={rResources || []}
                     columns={fitColumns}
                     sortMarks={sortMarks}
                     selectedRows={selectedRows}
+                    draggableRows={draggableRows}
                   />
                 </div>
               </div>
             </div>
 
-            <Resizer containerWidth={containerWidth} api={api} />
+            <Resizer
+              side="left"
+              panelWidth={gridWidth}
+              {...gridChartResizerUi}
+              onResizeStart={startDrag}
+              onResize={(width) => resizeGrid(width)}
+              onResizeEnd={(width) => resizeGrid(width, true)}
+              onExpandStart={onExpandStart}
+              onExpandEnd={onExpandEnd}
+            />
           </>
         ) : null}
 
-        <div className="wx-chart wx-aacPnv3E" ref={chartContainerRef}>
+        <div
+          className={[
+            'wx-chart',
+            'wx-aacPnv3E',
+            !chartVisible ? 'wx-chart-collapsed' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          ref={chartContainerRef}
+        >
           <div
             className={[
               'wx-timescale-viewport',
@@ -434,27 +522,44 @@ function ResourceLoad(props) {
           >
             <TimeScales api={api} />
           </div>
-          {mode === 'grid' ? (
-            <div
-              className="wx-grid-scale-container wx-aacPnv3E"
-              ref={scaleContainerRef}
-            >
-              <Grid
-                init={initRight}
+          <div
+            className={[
+              'wx-grid-scale-container',
+              'wx-aacPnv3E',
+              mode === 'histogram' ? 'wx-histogram-grid' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            ref={scaleContainerRef}
+          >
+            <Grid
+              init={initRight}
+              columns={rightColumns}
+              data={rResources || []}
+              sizes={{
+                rowHeight: cellHeight,
+                headerHeight: 0,
+              }}
+              selectedRows={selectedRows}
+              rowStyle={() =>
+                cellBorders === 'column' ? 'wx-column-border' : ''
+              }
+              cellStyle={getCellStyle}
+            />
+            {mode === 'histogram' && capacityLine ? (
+              <HistogramCapacityOverlay
+                rows={rResources}
                 columns={rightColumns}
-                data={rResources || []}
-                sizes={{
-                  rowHeight: cellHeight,
-                  headerHeight: 0,
-                }}
-                selectedRows={selectedRows}
-                rowStyle={() =>
-                  cellBorders === 'column' ? 'wx-column-border' : ''
-                }
-                cellStyle={getCellStyle}
+                cellHeight={cellHeight}
+                viewportHeight={rightContainerHeight}
+                viewportWidth={rightContainerWidth}
+                rightInset={rightHasVScroll ? scrollbarWidth : 0}
+                bottomInset={rightHasHScroll ? scrollbarWidth : 0}
+                scrollLeft={scrollLeft}
+                scrollTop={rightScrollTop}
               />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

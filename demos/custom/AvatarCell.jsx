@@ -20,7 +20,7 @@ function AvatarCell(props) {
   }, [userData]);
 
   return (
-    <div className="container">
+    <div className="wx-aaa6lKin container">
       <Avatar value={value} />
       <div>{value?.label ?? ''}</div>
     </div>

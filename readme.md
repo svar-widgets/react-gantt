@@ -22,45 +22,79 @@ Interactive, drag-and-drop interface allows users to add, edit, and organize tas
 
 ### ✨ Core Features
 
-- Task and dependency visualization
-- Interactive timeline with drag-and-drop
-- Customizable task edit form
-- Task progress shown on taskbars
-- Hierarchical view of subtasks
-- Configurable time scale (hours, days, weeks, sprints or stages)
-- Flexible time units: support for hours and minutes
-- Customizable grid columns
-- Sorting tasks in grid
-- Task filtering
-- Toolbar and context menu
-- Tooltips for taskbars
-- Zooming with scroll
-- Hotkey support for common actions
-- Virtualization for large data sets
-- Localization
-- Full TypeScript support
+SVAR React Gantt gives you the baseline of project planning: an interactive timeline, a task grid, intuitive UI for task management, and backend bindings — typed end to end and ready for React 19 and Next.js.
+
+**Timeline**
+-   Interactive drag-and-drop timeline
+-   Task and dependency visualization
+-   Hierarchical view of subtasks
+-   Task progress shown on taskbars
+-   Configurable time scale: hours, days, weeks, sprints or stages
+-   Flexible time units: hours and minutes
+-   Weekend and holiday highlighting
+-   Zooming with scroll
+-   The ability to drag tasks from a backlog
+
+**Grid**
+-   Customizable grid columns
+-   Sorting tasks in the grid
+-   Reorder tasks in the grid
+-   Task filtering, including natural language search
+-   Custom HTML in grid cells
+-   In-cell editing in the grid
+
+**Task interaction**
+-   Customizable task edit form
+-   Toolbar and context menu
+-   Tooltips for taskbars and links
+-   Hotkeys for common actions
+
+**Data & performance**
+-   Virtualization for large data sets
+-   Dynamic loading of sub-tasks
+-   RestDataProvider for REST backend binding
+-   Real-time updates from the server
+
+**UI & tooling**
+-   Light and dark themes
+-   Localization
+-   Full TypeScript support
+-   [AI tools](https://docs.svar.dev/react/gantt/ai-tools/) for coding agents: MCP server, skills, and flat context files
 
 ### 🚀 PRO Edition
 
 In addition to free, open-source core, SVAR React Gantt offers the PRO edition with additional features and automation logic:
 
-- Work-time calendar (non-linear calendar)
-- Calendars for individual tasks or resources
-- Critical path
-- Slack (float) visualization
-- Baselines
-- Resource planning
-- Resource workload visualization
-- Task grouping
-- Auto-scheduling (forward mode and Finish-to-Start dependencies)
-- Summary task automation
-- Unscheduled tasks
-- Rollups
-- Split tasks
-- Vertical markers
-- WBS codes support
-- Undo/redo
-- Export to PNG, PDF, Excel, and MS Project (export/import)
+**Scheduling & constraints**
+-   Auto-scheduling: FS, SS, FF, SF, and lag
+-   Constraints (6 types)
+-   Critical path and deadlines
+-   Manual and inactive tasks
+
+**Calendars & resources**
+-   Working time calendar (non-linear time scale), with individual calendars for tasks and resources
+-   Resource-driven scheduling
+-   Resource load chart and histogram
+-   Drag-and-drop resource assignment
+
+**Tracking**
+-   Baselines, progress line, and S-curve
+-   Slack (float) visualization
+
+**Advanced task management**
+-   Task grouping
+-   Rollups
+-   Split tasks
+-   Summary tasks automation
+-   Unscheduled tasks
+-   WBS codes support
+
+**Layout & data**
+-   Sub-grid panel and placeholder row
+-   Undo/redo
+-   Vertical markers
+-   Export to PDF, PNG, Excel (including resources and assignments)
+-   MS Project import/export
 
 Visit the [pricing page](https://svar.dev/react/gantt/pricing/) for full feature comparison and free trial.
 

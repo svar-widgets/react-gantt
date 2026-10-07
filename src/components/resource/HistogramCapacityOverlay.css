@@ -1,0 +1,13 @@
+.wx-histogram-capacity-overlay.wx-aabHBZEN {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.wx-histogram-capacity-path.wx-aabHBZEN {
+  fill: none;
+  stroke: var(--wx-gantt-resource-histogram-capacity-color);
+  stroke-width: 1;
+}

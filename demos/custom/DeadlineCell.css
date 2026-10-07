@@ -1,0 +1,8 @@
+.overdue.wx-aacDwrVM {
+  background: rgba(255, 0, 0, 0.1);
+  color: var(--wx-gantt-deadline-overdue-color, #fe6158);
+  font-weight: 600;
+  padding: 0 4px;
+  border-radius: 999px;
+  margin-left: 4px;
+}

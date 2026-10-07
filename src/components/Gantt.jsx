@@ -6,7 +6,6 @@ import {
   useImperativeHandle,
   useState,
   useContext,
-  useCallback,
 } from 'react';
 
 // core widgets lib
@@ -22,7 +21,6 @@ import { EventBusRouter } from '@svar-ui/lib-state';
 import {
   DataStore,
   getDefaultColumns,
-  getDefaultGridWidth,
   defaultTaskTypes,
   normalizeZoom,
 } from '@svar-ui/gantt-store';
@@ -59,8 +57,6 @@ const EMPTY_ARRAY = [];
 const DEFAULT_SCHEDULE = { type: 'forward' };
 const ROLLUPS_CLOSEST = { type: 'closest' };
 
-const COMPACT_WIDTH = 650;
-
 const Gantt = forwardRef(function Gantt(
   {
     taskTemplate = null,
@@ -78,10 +74,12 @@ const Gantt = forwardRef(function Gantt(
     end = null,
     lengthUnit = 'day',
     durationUnit = 'day',
+    inclusiveEnd = false,
     cellWidth = 100,
     cellHeight = 38,
     scaleHeight = 36,
     gridWidth = null,
+    subGridWidth = null,
     displayMode = 'all',
     readonly = false,
     cellBorders = 'full',
@@ -92,6 +90,8 @@ const Gantt = forwardRef(function Gantt(
     init = null,
     autoScale = true,
     unscheduledTasks = false,
+    inactiveTasks = false,
+    placeholderRow = false,
     criticalPath = null,
     schedule = DEFAULT_SCHEDULE,
     projectStart = null,
@@ -104,6 +104,9 @@ const Gantt = forwardRef(function Gantt(
     slack = false,
     groupBy = null,
     wbs = false,
+    deadlines = false,
+    progressLine = false,
+    sCurve = false,
     ...restProps
   },
   ref,
@@ -127,15 +130,10 @@ const Gantt = forwardRef(function Gantt(
   // prepare configuration objects
   const lCalendar = useMemo(() => locale.getRaw().calendar, [locale]);
 
-  // default column set (incl. auto-added resources/wbs columns) drives the
-  // default grid width when none is provided by the user
+  // default column set (incl. auto-added resources/wbs columns)
   const defaultGridColumns = useMemo(
     () => getDefaultColumns({ resources: !!resources, wbs }),
     [resources, wbs],
-  );
-  const resolvedGridWidth = useMemo(
-    () => gridWidth ?? getDefaultGridWidth(defaultGridColumns),
-    [gridWidth, defaultGridColumns],
   );
 
   const normalizedConfig = useMemo(() => {
@@ -158,7 +156,16 @@ const Gantt = forwardRef(function Gantt(
       };
     }
     return config;
-  }, [zoom, scales, columns, defaultGridColumns, links, cellWidth, lCalendar, locale]);
+  }, [
+    zoom,
+    scales,
+    columns,
+    defaultGridColumns,
+    links,
+    cellWidth,
+    lCalendar,
+    locale,
+  ]);
 
   const firstInRoute = useMemo(() => dataStore.in, [dataStore]);
 
@@ -173,17 +180,13 @@ const Gantt = forwardRef(function Gantt(
     firstInRoute.setNext(lastInRouteRef.current);
   }
 
-  // two-way binding for tableAPI
+  // two-way binding for tableAPI / subGridTableAPI
   const [tableAPI, setTableAPI] = useState(null);
   const tableAPIRef = useRef(null);
   tableAPIRef.current = tableAPI;
-
-  // compact mode (only changes when width crosses COMPACT_WIDTH)
-  const [compactMode, setCompactMode] = useState(false);
-  const onGanttWidthChange = useCallback((width) => {
-    const next = width != null && width <= COMPACT_WIDTH;
-    setCompactMode((prev) => (prev === next ? prev : next));
-  }, []);
+  const [subGridTableAPI, setSubGridTableAPI] = useState(null);
+  const subGridTableAPIRef = useRef(null);
+  subGridTableAPIRef.current = subGridTableAPI;
 
   // public API
   const api = useMemo(
@@ -202,10 +205,15 @@ const Gantt = forwardRef(function Gantt(
       getTask: (id) => dataStore.getTask(id),
       getResource: (id) => dataStore.getResource(id),
       serialize: (config) => dataStore.serialize(config),
-      getTable: (waitRender) =>
-        waitRender
-          ? new Promise((res) => setTimeout(() => res(tableAPIRef.current), 1))
-          : tableAPIRef.current,
+      getTable: (waitRender, section = 'grid') => {
+        const getTableAPI = () =>
+          section === 'subGrid'
+            ? subGridTableAPIRef.current
+            : tableAPIRef.current;
+        return waitRender
+          ? new Promise((res) => setTimeout(() => res(getTableAPI()), 1))
+          : getTableAPI();
+      },
       getHistory: () => dataStore.getHistory(),
       getCalendar: (id) => dataStore.getCalendar(id),
       getTaskCalendar: (task) => dataStore.getTaskCalendar(task),
@@ -213,6 +221,7 @@ const Gantt = forwardRef(function Gantt(
         dataStore.getResourceCalendar(resource),
       getTaskResources: (id) => dataStore.getTaskResources(id),
       getResourceTasks: (id) => dataStore.getResourceTasks(id),
+      getLinkValidator: () => dataStore.getLinkValidator(),
     }),
     [dataStore, firstInRoute],
   );
@@ -223,12 +232,15 @@ const Gantt = forwardRef(function Gantt(
       getReactiveState: dataStore.getReactive.bind(dataStore),
       getState: dataStore.getState.bind(dataStore),
       exec: firstInRoute.exec.bind(firstInRoute),
+      on: firstInRoute.on.bind(firstInRoute),
+      detach: firstInRoute.detach.bind(firstInRoute),
       getTask: dataStore.getTask.bind(dataStore),
       getTaskCalendar: dataStore.getTaskCalendar.bind(dataStore),
       getResourceCalendar: dataStore.getResourceCalendar.bind(dataStore),
       getCalendar: dataStore.getCalendar.bind(dataStore),
       getTaskResources: dataStore.getTaskResources.bind(dataStore),
       getHistory: dataStore.getHistory.bind(dataStore),
+      getLinkValidator: dataStore.getLinkValidator.bind(dataStore),
     }),
     [dataStore, firstInRoute],
   );
@@ -269,8 +281,11 @@ const Gantt = forwardRef(function Gantt(
       rollups: rollupsConfig,
       autoScale,
       unscheduledTasks,
+      inactiveTasks,
+      placeholderRow: placeholderRow && !readonly,
       markers,
       durationUnit,
+      inclusiveEnd,
       criticalPath,
       schedule,
       projectStart,
@@ -281,14 +296,17 @@ const Gantt = forwardRef(function Gantt(
       undo,
       _weekStart: lCalendar.weekStart,
       splitTasks,
+      deadlines,
       summary,
       groupBy,
       highlightTime,
       wbs,
-      displayMode,
-      gridWidth: resolvedGridWidth,
+      progressLine,
       cellBorders,
-      _compactMode: compactMode,
+      sCurve,
+      displayMode,
+      ...(gridWidth != null ? { gridWidth } : {}),
+      ...(subGridWidth != null ? { subGridWidth } : {}),
     }),
     [
       tasks,
@@ -307,8 +325,12 @@ const Gantt = forwardRef(function Gantt(
       rollupsConfig,
       autoScale,
       unscheduledTasks,
+      inactiveTasks,
+      placeholderRow,
+      readonly,
       markers,
       durationUnit,
+      inclusiveEnd,
       criticalPath,
       schedule,
       projectStart,
@@ -319,14 +341,17 @@ const Gantt = forwardRef(function Gantt(
       undo,
       lCalendar,
       splitTasks,
+      deadlines,
       summary,
       groupBy,
       highlightTime,
       wbs,
-      displayMode,
-      resolvedGridWidth,
+      progressLine,
       cellBorders,
-      compactMode,
+      sCurve,
+      displayMode,
+      gridWidth,
+      subGridWidth,
     ],
   );
 
@@ -351,7 +376,7 @@ const Gantt = forwardRef(function Gantt(
           taskTemplate={taskTemplate}
           readonly={readonly}
           onTableAPIChange={setTableAPI}
-          onGanttWidthChange={onGanttWidthChange}
+          onSubGridTableAPIChange={setSubGridTableAPI}
         />
       </StoreContext.Provider>
     </context.i18n.Provider>

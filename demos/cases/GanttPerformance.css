@@ -8,9 +8,31 @@
 }
 
 .row.wx-KB3Eoqwm {
+  display: flex;
+  align-items: center;
+  gap: 20px;
   padding: 13px;
   font-family: var(--wx-font-family);
   font-size: var(--wx-font-size);
+}
+
+.auto.wx-KB3Eoqwm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pro.wx-KB3Eoqwm {
+  color: var(--demo-framework-color);
+  border: 1px solid var(--demo-framework-color);
+  border-radius: 4px;
+  padding: 0px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.selector.wx-KB3Eoqwm .wx-select {
+  width: 120px;
 }
 
 .gtcell.wx-KB3Eoqwm {

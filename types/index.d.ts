@@ -23,10 +23,29 @@ import type {
   IGanttColumn,
   IResourceColumn,
   IResourceLoad,
+  IResourceHistogramConfig,
+  IResourceHistogramTooltip,
+  ISCurveTooltip,
+  TID,
 } from '@svar-ui/gantt-store';
 
 export * from '@svar-ui/gantt-store';
 export { registerEditorItem } from '@svar-ui/react-editor';
+
+export declare const version: string;
+
+export interface ILocatedTask {
+  id: TID;
+  node: Element;
+}
+
+export declare function locateTask(
+  ev:
+    | MouseEvent
+    | DragEvent
+    | { target?: EventTarget | null; clientY?: number },
+  api?: IApi,
+): ILocatedTask | null;
 
 export interface IColumnConfig extends Omit<IGanttColumn, 'header'> {
   cell?: ITableColumn['cell'];
@@ -40,13 +59,13 @@ export declare const Gantt: ForwardRefExoticComponent<
     taskTemplate?: FC<{
       data: ITask;
       api: IApi;
-      onaction: (ev: { action: string; data: { [key: string]: any } }) => void;
+      onAction: (ev: { action: string; data: { [key: string]: any } }) => void;
     }>;
     readonly?: boolean;
     cellBorders?: 'column' | 'full';
     highlightTime?: (date: Date, unit: 'day' | 'hour') => string;
     init?: (api: IApi) => void;
-  } & IConfig &
+  } & Omit<IConfig, 'columns'> &
     GanttActions<TMethodsConfig> &
     RefAttributes<IApi>
 >;
@@ -57,10 +76,12 @@ export declare const HeaderMenu: FC<
   }
 >;
 
-export declare const ContextMenu: FC<
+export declare const ContextMenu: ForwardRefExoticComponent<
   ComponentProps<typeof BaseContextMenu> & {
     api?: IApi;
-  }
+  } & RefAttributes<{
+      show: (ev?: MouseEvent | null, obj?: any) => void;
+    }>
 >;
 
 export declare const Toolbar: FC<
@@ -76,10 +97,14 @@ export declare const Editor: FC<
 >;
 
 type TooltipContentData =
-  | { task: ITask; segmentIndex: number | null }
+  | { task: ITask; segmentIndex: number | null; violated?: boolean }
+  | { constraint: ITask; violated?: boolean }
   | { link: ILink }
   | { rollup: ITask }
-  | { resource: IResource };
+  | { resource: IResource }
+  | { histogram: IResourceHistogramTooltip }
+  | { sCurve: ISCurveTooltip }
+  | { deadline: ITask };
 
 export declare const Tooltip: FC<{
   content?: FC<{
@@ -92,14 +117,16 @@ export declare const Tooltip: FC<{
 
 export declare const ResourceLoad: FC<{
   api?: IApi;
-  columns?: IResourceColumn[];
-  mode?: 'grid' | 'chart';
+  columns?: false | IResourceColumn[];
+  mode?: 'utilization' | 'histogram';
+  histogram?: IResourceHistogramConfig;
   template?: (load: IResourceLoad) => string;
+  draggableRows?: boolean | ((row: IResource) => boolean);
 }>;
 
-export declare const Fullscreen: FC<{
-  hotkey?: string;
-  children?: ReactNode;
+export declare const ConflictReport: FC<{
+  api?: IApi;
+  onClose?: () => void;
 }>;
 
 export declare const Material: FC<{

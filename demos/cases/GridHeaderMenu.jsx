@@ -24,7 +24,9 @@ function GridHeaderMenu({ skinSettings }) {
   return (
     <div className="wx-DZzpn0qn rows">
       <div className="wx-DZzpn0qn bar">
-        <div>Right-click the grid header and select visible columns</div>
+        <div className="wx-DZzpn0qn hint">
+          Right-click the grid header and select visible columns
+        </div>
         <div className="wx-DZzpn0qn bar">
           <div className="wx-DZzpn0qn label">Columns that can be hidden:</div>
           <RadioButtonGroup

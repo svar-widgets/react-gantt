@@ -50,12 +50,13 @@ export default function Resources({
     );
   }, [allOptions, taskResources]);
 
-  function getActionData(evData) {
+  // `next` is the updated list: state setters are async, so pass it explicitly
+  function getActionData(evData, next) {
     return {
       view: 'resources',
       event: evData,
       values: {
-        taskAssignments: taskResources,
+        taskAssignments: next,
       },
     };
   }
@@ -65,14 +66,18 @@ export default function Resources({
     if (autoSave) {
       api.exec('delete-assignment', { id });
     } else {
-      setTaskResources((prev) => prev.filter((a) => a.id !== id));
+      const next = taskResources.filter((a) => a.id !== id);
+      setTaskResources(next);
       onChange &&
         onChange(
-          getActionData({
-            id,
-            action: 'delete-assignment',
-            data: { id },
-          }),
+          getActionData(
+            {
+              id,
+              action: 'delete-assignment',
+              data: { id },
+            },
+            next,
+          ),
         );
     }
     setNewRowId(null);
@@ -85,14 +90,18 @@ export default function Resources({
       api.exec('add-assignment', item);
     } else {
       const r = resources?.byId(assignment.resource);
-      setTaskResources((prev) => [...prev, { ...r, ...assignment }]);
+      const next = [...taskResources, { ...r, ...assignment }];
+      setTaskResources(next);
       onChange &&
         onChange(
-          getActionData({
-            id: r.id,
-            action: 'add-assignment',
-            data: item,
-          }),
+          getActionData(
+            {
+              id: r.id,
+              action: 'add-assignment',
+              data: item,
+            },
+            next,
+          ),
         );
     }
   }
@@ -119,16 +128,20 @@ export default function Resources({
         assignment = { ...r, ...update.assignment };
       }
 
-      setTaskResources((prev) =>
-        prev.map((row) => (row.id === id ? { ...row, ...assignment } : row)),
+      const next = taskResources.map((row) =>
+        row.id === id ? { ...row, ...assignment } : row,
       );
+      setTaskResources(next);
       onChange &&
         onChange(
-          getActionData({
-            id,
-            action: 'update-assignment',
-            data: update,
-          }),
+          getActionData(
+            {
+              id,
+              action: 'update-assignment',
+              data: update,
+            },
+            next,
+          ),
         );
     }
   }

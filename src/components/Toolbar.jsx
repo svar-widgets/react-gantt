@@ -5,10 +5,12 @@ import {
   handleAction,
   getToolbarButtons,
   isHandledAction,
+  isPlaceholder,
 } from '@svar-ui/gantt-store';
 import { locale } from '@svar-ui/lib-dom';
 import { en } from '@svar-ui/gantt-locales';
 import { context } from '@svar-ui/react-core';
+import './Toolbar.css';
 
 export default function Toolbar({ api = null, items = [] }) {
   const i18nCtx = useContext(context.i18n);
@@ -20,20 +22,33 @@ export default function Toolbar({ api = null, items = [] }) {
   const history = useStoreLater(api, 'history');
   const splitTasks = useStoreLater(api, 'splitTasks');
   const groupBy = useStoreLater(api, 'groupBy');
+  const conflicts = useStoreLater(api, 'conflicts');
+  const showConflicts = useStoreLater(api, 'showConflicts');
+  const schedule = useStoreLater(api, 'schedule');
 
   const historyActions = ['undo', 'redo'];
 
   const finalItems = useMemo(() => {
-    const fullButtons = getToolbarButtons({ undo: true, splitTasks: true });
+    const fullButtons = getToolbarButtons({
+      undo: true,
+      splitTasks: true,
+      conflicts: true,
+    });
     const buttons = items.length
       ? items
       : getToolbarButtons({
           undo,
           splitTasks,
           group: !!groupBy?.field,
+          conflicts: schedule?.auto,
         });
     return buttons.map((b) => {
       let item = { ...b, disabled: false };
+      if (item.id === 'show-conflicts') {
+        if (conflicts?.length)
+          item.css = item.css ? `${item.css} wx-conflicts` : 'wx-conflicts';
+        if (showConflicts) item.type = 'pressed';
+      }
       item.handler = isHandledAction(fullButtons, item.id)
         ? (it) => handleAction(api, it.id, null, _)
         : item.handler;
@@ -41,7 +56,17 @@ export default function Toolbar({ api = null, items = [] }) {
       if (item.menuText) item.menuText = _(item.menuText);
       return item;
     });
-  }, [items, api, _, undo, splitTasks, groupBy]);
+  }, [
+    items,
+    api,
+    _,
+    undo,
+    splitTasks,
+    groupBy,
+    schedule,
+    conflicts,
+    showConflicts,
+  ]);
 
   const buttons = useMemo(() => {
     const finalButtons = [];
@@ -49,8 +74,12 @@ export default function Toolbar({ api = null, items = [] }) {
       const action = item.id;
 
       if (action === 'add-task' || !historyActions.includes(action)) {
-        if (!_selected?.length || !api) {
-          if (action !== 'add-task') return;
+        if (
+          !_selected?.length ||
+          (_selected?.length === 1 && isPlaceholder(_selected[0].id)) ||
+          !api
+        ) {
+          if (action !== 'add-task' && action !== 'show-conflicts') return;
           finalButtons.push(item);
         } else {
           finalButtons.push({
@@ -61,8 +90,8 @@ export default function Toolbar({ api = null, items = [] }) {
                 item.isDisabled(
                   task,
                   api.getState(),
-                  api.getTaskCalendar(task)
-                )
+                  api.getTaskCalendar(task),
+                ),
               ),
           });
         }

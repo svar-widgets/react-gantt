@@ -1,0 +1,19 @@
+.rows.wx-aaeaN5bm {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.topbar.wx-aaeaN5bm {
+  margin-bottom: 8px;
+}
+.topbar.wx-aaeaN5bm p {
+  margin: 8px 0 0;
+  font: var(--wx-font);
+  color: var(--wx-color-font-alt);
+}
+.gtcell.wx-aaeaN5bm {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-top: var(--wx-gantt-border);
+}

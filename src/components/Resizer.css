@@ -1,5 +1,33 @@
-.wx-resizer.wx-resizer-display-all.wx-pFykzMlT:hover::before,
-.wx-resizer.wx-resizer-display-all.wx-pFykzMlT:hover::after,
+.wx-resizer.wx-pFykzMlT {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  width: 4px;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--wx-gantt-border-color);
+}
+
+.wx-resizer-left.wx-pFykzMlT {
+  z-index: 12;
+}
+
+.wx-resizer-right.wx-pFykzMlT {
+  z-index: 11;
+}
+
+.wx-resizer-right.wx-resizer-layout-collapsed.wx-pFykzMlT {
+  overflow: visible;
+}
+
+.wx-resizer-grip-hover.wx-pFykzMlT:not(:hover)
+  .wx-button-expand-content.wx-pFykzMlT {
+  opacity: 0;
+}
+
+/* drag grip lines */
+.wx-resizer-grip-hover.wx-pFykzMlT:hover::before,
+.wx-resizer-grip-hover.wx-pFykzMlT:hover::after,
 .wx-button-expand-content.wx-pFykzMlT::before,
 .wx-button-expand-content.wx-pFykzMlT::after {
   content: '';
@@ -7,59 +35,53 @@
   background-color: var(--wx-gantt-border-color);
 }
 
-.wx-resizer.wx-pFykzMlT {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--wx-gantt-border-color);
-}
-.wx-resizer.wx-pFykzMlT:hover .wx-button-expand-content.wx-pFykzMlT {
-  opacity: 1;
-}
-
-.wx-resizer.wx-resizer-display-all.wx-pFykzMlT:hover::before,
-.wx-resizer.wx-resizer-display-all.wx-pFykzMlT:hover::after {
+.wx-resizer-grip-hover.wx-pFykzMlT:hover::before,
+.wx-resizer-grip-hover.wx-pFykzMlT:hover::after {
   top: 0;
   width: 2px;
   height: 100%;
 }
 
-.wx-resizer.wx-resizer-display-all.wx-pFykzMlT:hover::before {
+.wx-resizer-grip-hover.wx-resizer-left.wx-pFykzMlT:hover::before {
   left: -3px;
 }
 
-.wx-resizer.wx-resizer-display-all.wx-pFykzMlT:hover::after {
+.wx-resizer-grip-hover.wx-resizer-left.wx-pFykzMlT:hover::after {
   right: -2px;
 }
 
-.wx-resizer-display-chart.wx-pFykzMlT .wx-button-expand-left.wx-pFykzMlT {
-  display: none;
+.wx-resizer-grip-hover.wx-resizer-right.wx-pFykzMlT:hover::before {
+  left: -2px;
 }
 
-.wx-resizer-display-grid.wx-pFykzMlT .wx-button-expand-right.wx-pFykzMlT {
-  display: none;
+.wx-resizer-grip-hover.wx-resizer-right.wx-pFykzMlT:hover::after {
+  right: -3px;
 }
 
-.wx-resizer-display-all.wx-pFykzMlT {
-  .wx-button-expand-content.wx-pFykzMlT {
-    opacity: 0;
-  }
-}
-
-.wx-resizer-display-all.wx-pFykzMlT .wx-button-expand-box.wx-pFykzMlT,
-.wx-resizer-display-chart.wx-pFykzMlT .wx-button-expand-box.wx-pFykzMlT {
+/* expand box offset toward the adjacent panel */
+.wx-resizer-layout-both.wx-pFykzMlT .wx-button-expand-box.wx-pFykzMlT,
+.wx-resizer-layout-end.wx-pFykzMlT .wx-button-expand-box.wx-pFykzMlT {
   left: 12px;
 }
 
-.wx-resizer-display-grid.wx-pFykzMlT .wx-button-expand-left.wx-pFykzMlT {
+.wx-resizer-right.wx-resizer-layout-collapsed.wx-pFykzMlT
+  .wx-button-expand-box.wx-pFykzMlT {
+  left: -12px;
+}
+
+/* expand button position within the box */
+.wx-resizer-layout-both.wx-pFykzMlT .wx-button-expand-left.wx-pFykzMlT {
+  right: 5px;
+}
+
+.wx-resizer-layout-start.wx-pFykzMlT .wx-button-expand-left.wx-pFykzMlT {
   right: -6px;
 }
 
-.wx-resizer-display-chart.wx-pFykzMlT .wx-button-expand-left.wx-pFykzMlT,
-.wx-resizer-display-all.wx-pFykzMlT .wx-button-expand-left.wx-pFykzMlT {
-  right: 5px;
+.wx-resizer-right.wx-resizer-layout-collapsed.wx-pFykzMlT
+  .wx-button-expand-left.wx-pFykzMlT {
+  left: 5px;
+  right: auto;
 }
 
 .wx-button-expand-box.wx-pFykzMlT {
@@ -69,6 +91,7 @@
 
 .wx-button-expand-content.wx-pFykzMlT {
   position: absolute;
+  top: 4px;
   transform: translate(-50%, -50%);
   width: 20px;
 
@@ -91,7 +114,6 @@
 }
 
 .wx-button-expand-right.wx-pFykzMlT {
-  top: 4px;
   left: 1px;
 
   &::before {
@@ -114,12 +136,6 @@
 }
 
 .wx-button-expand-left.wx-pFykzMlT {
-  top: 4px;
-  i.wx-pFykzMlT {
-    border-top-left-radius: 4px;
-    border-bottom-left-radius: 4px;
-  }
-
   &::before {
     top: -3.6px;
     left: 3px;
@@ -133,5 +149,10 @@
     width: 17px;
     height: 4px;
     clip-path: polygon(0 0, 100% 100%, 100% 0);
+  }
+
+  i.wx-pFykzMlT {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
   }
 }

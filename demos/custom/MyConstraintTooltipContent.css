@@ -1,0 +1,32 @@
+.data.wx-aaedi5GZ {
+  white-space: nowrap;
+  background-color: var(--wx-tooltip-background);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wx-row.wx-aaedi5GZ {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--wx-font-family);
+  font-size: 13px;
+  color: var(--wx-color-primary-font);
+}
+
+.wx-label.wx-aaedi5GZ {
+  font-weight: normal;
+}
+
+.wx-value.wx-aaedi5GZ {
+  font-weight: 600;
+}
+
+.wx-violated-row.wx-aaedi5GZ {
+  font-family: var(--wx-font-family);
+  font-size: 13px;
+  font-weight: normal;
+  color: var(--wx-gantt-constraint-violation-color);
+}

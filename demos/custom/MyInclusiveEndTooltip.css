@@ -1,0 +1,25 @@
+.data.wx-aad9F2Sy {
+  white-space: nowrap;
+  background-color: var(--wx-tooltip-background);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wx-row.wx-aad9F2Sy {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--wx-font-family);
+  font-size: 13px;
+  color: var(--wx-color-primary-font);
+}
+
+.wx-label.wx-aad9F2Sy {
+  font-weight: normal;
+}
+
+.wx-value.wx-aad9F2Sy {
+  font-weight: 600;
+}

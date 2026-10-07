@@ -1,7 +1,12 @@
+import { useContext, useMemo } from 'react';
+import { context } from '@svar-ui/react-core';
 import './TextCell.css';
 import GroupCellText from './GroupCellText.jsx';
 
 function TextCell({ row, column }) {
+  const i18n = useContext(context.i18n);
+  const _ = useMemo(() => i18n.getGroup('gantt'), [i18n]);
+
   function getStyle(row, col) {
     return {
       justifyContent: col.align,
@@ -26,6 +31,8 @@ function TextCell({ row, column }) {
           <CellComponent row={row} column={column} />
         ) : row.$group ? (
           <GroupCellText row={row} />
+        ) : row.$placeholder && !row.text ? (
+          <span className="wx-pqc08MHU wx-hint">{_('New task')}</span>
         ) : (
           row.text
         )}

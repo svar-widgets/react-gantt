@@ -14,9 +14,9 @@ function GanttZoom({ skinSettings }) {
 
   return (
     <div className="wx-HQBKHlAu demo">
-      <h4>
+      <div className="wx-HQBKHlAu hint">
         Point over Gantt chart, then hold Ctrl and use mouse wheel to zoom
-      </h4>
+      </div>
       <div className="wx-HQBKHlAu gtcell">
         <Gantt
           init={init}

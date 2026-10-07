@@ -1,0 +1,28 @@
+.meta.wx-aaaVCz2u {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  line-height: 1.15;
+}
+
+.name.wx-aaaVCz2u,
+.detail.wx-aaaVCz2u {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name.wx-aaaVCz2u {
+  font-size: var(--wx-font-size);
+  color: var(--wx-color-font);
+}
+
+.detail.wx-aaaVCz2u {
+  font-size: var(--wx-font-size-sm);
+  color: var(--wx-color-font-alt);
+}

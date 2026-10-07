@@ -10,16 +10,74 @@ import {
 import { locate, locateID, getID, setID } from '@svar-ui/lib-dom';
 import storeContext from '../../context';
 import { useStore, useStoreWithCounter } from '@svar-ui/lib-react';
-import { isSegmentMoveAllowed, extendDragOptions } from '@svar-ui/gantt-store';
-import { Button } from '@svar-ui/react-core';
+import {
+  isSegmentMoveAllowed,
+  extendDragOptions,
+  calcScaleCellDate,
+  getDiffer,
+} from '@svar-ui/gantt-store';
+import { Button, context } from '@svar-ui/react-core';
+import { getUnitStart, getTaskAtRow } from '../../helpers/chart.js';
 import Links from './Links.jsx';
 import BarSegments from './BarSegments.jsx';
 import Rollups from './Rollups.jsx';
 import './Bars.css';
 
+/** Hide constraint badge when it collides with the deadline marker. */
+const CONSTRAINT_DEADLINE_COLLISION = 48;
+
+function isConstraintCompact(task) {
+  if (
+    typeof task.$x_constraint !== 'number' ||
+    typeof task.$x_deadline !== 'number'
+  )
+    return false;
+  return (
+    Math.abs(task.$x_constraint - task.$x_deadline) <
+    CONSTRAINT_DEADLINE_COLLISION
+  );
+}
+
+function scheduleStyle(task) {
+  return {
+    left: `${task.left}px`,
+    top: `${task.y}px`,
+    width: `${task.w}px`,
+    height: `${task.h}px`,
+  };
+}
+
+function deadlineStyle(task) {
+  return {
+    left: `${task.$x_deadline}px`,
+    top: `${task.$y}px`,
+    height: `${task.$h}px`,
+  };
+}
+
+function constraintStyle(task) {
+  return {
+    left: `${task.$x_constraint}px`,
+    top: `${task.$y - 2}px`,
+    height: `${task.$h + 4}px`,
+  };
+}
+
+// Arrow points into the open side. Floors open right, ceilings open left.
+// Must-start / must-finish are pins and have no arrow. mso still keeps the badge on the left.
+function isMustConstraint(type) {
+  return type === 'mso' || type === 'mfo';
+}
+
+function constraintOpensRight(type) {
+  return type === 'snet' || type === 'fnet' || type === 'mso';
+}
+
 function Bars(props) {
   const { readonly, taskTemplate: TaskTemplate } = props;
 
+  const i18n = useContext(context.i18n);
+  const _ = useMemo(() => i18n.getGroup('gantt'), [i18n]);
   const api = useContext(storeContext);
 
   const [rTasksValue, rTasksCounter] = useStoreWithCounter(api, '_tasks');
@@ -33,11 +91,19 @@ function Bars(props) {
   const rRollups = useStore(api, '_rollups');
   const focusTaskStore = useStore(api, 'focusTask');
   const criticalPath = useStore(api, 'criticalPath');
-  const tree = useStore(api, 'tree');
   const schedule = useStore(api, 'schedule');
   const splitTasks = useStore(api, 'splitTasks');
   const summary = useStore(api, 'summary');
   const slack = useStore(api, 'slack');
+  const cellHeight = useStore(api, 'cellHeight');
+  const unscheduledTasks = useStore(api, 'unscheduledTasks');
+  const inactiveTasks = useStore(api, 'inactiveTasks');
+  const deadlines = useStore(api, 'deadlines');
+  const conflicts = useStore(api, '_conflicts');
+  const placeholderRow = useStore(api, 'placeholderRow');
+  const durationUnit = useStore(api, 'durationUnit');
+
+  const constraintViolated = conflicts?.constraints;
 
   const tasks = useMemo(() => {
     if (!areaValue || !Array.isArray(rTasksValue)) return [];
@@ -59,7 +125,10 @@ function Bars(props) {
   const ignoreNextClickRef = useRef(false);
 
   const [linkFrom, setLinkFrom] = useState(undefined);
+  const linkValidatorRef = useRef(null);
   const [taskMove, setTaskMove] = useState(null);
+  // task scheduling
+  const [taskSchedule, setTaskSchedule] = useState(null);
   const progressFromRef = useRef(null);
 
   const [selectedLinkId, setSelectedLinkId] = useState(null);
@@ -94,7 +163,7 @@ function Bars(props) {
 
   useEffect(() => {
     if (!focusTaskStore) return;
-    if (focusTaskStore.column === false) {
+    if (!focusTaskStore.section || focusTaskStore.section === 'chart') {
       const { id } = focusTaskStore;
       const node = containerRef.current?.querySelector(
         `.wx-bar[data-id='${setID(id)}']`,
@@ -120,17 +189,58 @@ function Bars(props) {
 
   const startDrag = useCallback(() => {
     document.body.style.userSelect = 'none';
+    if (containerRef.current) containerRef.current.style.cursor = '';
   }, []);
 
   const endDrag = useCallback(() => {
     document.body.style.userSelect = '';
+    if (containerRef.current) containerRef.current.style.cursor = '';
   }, []);
+
+  const getTaskAtY = useCallback(
+    (clientY, rect = containerRef.current.getBoundingClientRect()) => {
+      return getTaskAtRow(rTasksValue, clientY - rect.top, cellHeight);
+    },
+    [rTasksCounter, cellHeight],
+  );
+
+  const canScheduleTask = useCallback(
+    (task) => {
+      if (!task) return false;
+      if (task.$placeholder) return placeholderRow;
+      return (
+        unscheduledTasks &&
+        task.unscheduled &&
+        (task.type === 'task' || task.type === 'milestone') &&
+        !task.$group
+      );
+    },
+    [placeholderRow, unscheduledTasks],
+  );
+
+  const isScheduleWorkingDay = useCallback(
+    (task, left) => {
+      const date = calcScaleCellDate(left, api.getState());
+      const calendar = api.getTaskCalendar(task);
+      if (calendar) return calendar.isWorkingDay(date);
+
+      return true;
+    },
+    [api],
+  );
+
+  const getUnitStartY = useCallback(
+    (y) => Math.trunc(y / cellHeight) * cellHeight,
+    [cellHeight],
+  );
 
   const getMoveMode = useCallback(
     (node, e, task) => {
       if (e.target.classList.contains('wx-line')) return '';
       if (!task) task = api.getTask(getID(node));
-      if (task.type === 'milestone' || task.type === 'summary') return '';
+      if (task.type === 'milestone') return '';
+      if (task.type === 'summary' && !(schedule?.auto && task.manual))
+        return '';
 
       const segmentNode = locate(e, 'data-segment');
       if (segmentNode) node = segmentNode;
@@ -142,17 +252,39 @@ function Bars(props) {
       if (p > 1 - delta) return 'end';
       return '';
     },
-    [api],
+    [api, schedule],
   );
 
   const down = useCallback(
     (node, point) => {
-      const { clientX } = point;
-      const id = getID(node);
-      const task = api.getTask(id);
-      const css = point.target.classList;
+      const { clientX, clientY } = point;
       if (point.target.closest('.wx-delete-button')) return;
       if (!readonly) {
+        if (!node && (unscheduledTasks || placeholderRow)) {
+          const rowTask = getTaskAtY(clientY);
+          const rect = containerRef.current.getBoundingClientRect();
+          const left = getUnitStart(clientX - rect.left, lengthUnitWidth);
+          if (canScheduleTask(rowTask) && isScheduleWorkingDay(rowTask, left)) {
+            const isMilestone = rowTask && rowTask.type === 'milestone';
+            setTaskSchedule({
+              x: left,
+              cx: left,
+              left: isMilestone ? left - rowTask.$h / 2 : left,
+              y: rowTask ? rowTask.$y : getUnitStartY(clientY - rect.top) + 3,
+              h: rowTask ? rowTask.$h : cellHeight - 7,
+              w: isMilestone ? rowTask.$h : lengthUnitWidth,
+              task: rowTask,
+              isMilestone,
+            });
+            startDrag();
+            return;
+          }
+        }
+        if (!node) return;
+
+        const id = getID(node);
+        const task = api.getTask(id);
+        const css = point.target.classList;
         if (css.contains('wx-progress-marker')) {
           const { progress } = api.getTask(id);
           progressFromRef.current = {
@@ -189,7 +321,21 @@ function Bars(props) {
         startDrag();
       }
     },
-    [api, readonly, getMoveMode, startDrag, splitTasks],
+    [
+      api,
+      readonly,
+      getMoveMode,
+      startDrag,
+      splitTasks,
+      unscheduledTasks,
+      placeholderRow,
+      getTaskAtY,
+      lengthUnitWidth,
+      canScheduleTask,
+      isScheduleWorkingDay,
+      getUnitStartY,
+      cellHeight,
+    ],
   );
 
   const mousedown = useCallback(
@@ -197,8 +343,6 @@ function Bars(props) {
       if (e.button !== 0) return;
 
       const node = locate(e);
-      if (!node) return;
-
       down(node, e);
     },
     [down],
@@ -270,12 +414,35 @@ function Bars(props) {
       }
 
       endDrag();
+    } else if (taskSchedule) {
+      const { left, w, task, isMilestone } = taskSchedule;
+      const state = api.getState();
+      const start = calcScaleCellDate(isMilestone ? left + w / 2 : left, state);
+      const end = calcScaleCellDate(left + w, state);
+      const differ = getDiffer(durationUnit, api.getCalendar());
+      const dates = isMilestone
+        ? { start, duration: 0 }
+        : { start, duration: Math.max(1, differ(end, start)) };
+      if (task.$placeholder) {
+        api.exec('add-task', {
+          task: {
+            ...dates,
+            text: _('New task'),
+            type: 'task',
+            eventSource: 'placeholder',
+          },
+        });
+      } else api.exec('update-task', { id: task.id, task: dates });
+
+      setTaskSchedule(null);
+      ignoreNextClickRef.current = true;
+      endDrag();
     }
-  }, [api, endDrag, taskMove, lengthUnitWidth]);
+  }, [api, endDrag, taskMove, taskSchedule, lengthUnitWidth, durationUnit, _]);
 
   const move = useCallback(
     (e, point) => {
-      const { clientX } = point;
+      const { clientX, clientY } = point;
 
       if (!readonly) {
         if (progressFromRef.current) {
@@ -345,6 +512,29 @@ function Bars(props) {
           }
           nextTaskMove.start = true;
           setTaskMove(nextTaskMove);
+        } else if (taskSchedule) {
+          const { isMilestone, x, w, cx } = taskSchedule;
+          const rect = containerRef.current.getBoundingClientRect();
+          const current = getUnitStart(clientX - rect.left, lengthUnitWidth);
+
+          // same cell, do nothing
+          if (current === cx) return;
+
+          if (isMilestone) {
+            setTaskSchedule({
+              ...taskSchedule,
+              cx: current,
+              left: current - w / 2,
+            });
+            return;
+          }
+
+          setTaskSchedule({
+            ...taskSchedule,
+            cx: current,
+            left: Math.min(current, x),
+            w: Math.abs(current - x) + lengthUnitWidth,
+          });
         } else {
           const taskNode = locate(e);
           if (taskNode) {
@@ -353,6 +543,16 @@ function Bars(props) {
             const barNode = segNode || taskNode;
             const mode = getMoveMode(barNode, point, task);
             barNode.style.cursor = mode && !readonly ? 'col-resize' : 'pointer';
+          } else if (unscheduledTasks || placeholderRow) {
+            const rowTask = getTaskAtY(clientY);
+            const left = getUnitStart(
+              clientX - containerRef.current.getBoundingClientRect().left,
+              lengthUnitWidth,
+            );
+            containerRef.current.style.cursor =
+              canScheduleTask(rowTask) && isScheduleWorkingDay(rowTask, left)
+                ? 'crosshair'
+                : '';
           }
         }
       }
@@ -361,11 +561,17 @@ function Bars(props) {
       api,
       readonly,
       taskMove,
+      taskSchedule,
       lengthUnitWidth,
       totalWidth,
       getMoveMode,
       onSelectLink,
       up,
+      unscheduledTasks,
+      placeholderRow,
+      getTaskAtY,
+      canScheduleTask,
+      isScheduleWorkingDay,
     ],
   );
 
@@ -430,27 +636,42 @@ function Bars(props) {
     return types[(fromStart ? 1 : 0) + (toStart ? 0 : 2)];
   }, []);
 
+  const linkedFrom = useMemo(() => {
+    if (!linkFrom) return null;
+    const out = new Map();
+    rLinksValue.forEach((l) => {
+      if (l.source !== linkFrom.id) return;
+      if (!out.has(l.target)) out.set(l.target, new Set());
+      out.get(l.target).add(l.type);
+    });
+    return out;
+  }, [linkFrom, rLinksCounter]);
+
   const alreadyLinked = useCallback(
     (target, toStart) => {
-      const source = linkFrom.id;
-      const fromStart = linkFrom.start;
-
-      if (target === source) return true;
-
-      return !!rLinksValue.find((l) => {
-        return (
-          l.target === target &&
-          l.source === source &&
-          l.type === getLinkType(fromStart, toStart)
-        );
-      });
+      if (target === linkFrom.id) return true;
+      const type = getLinkType(linkFrom.start, toStart);
+      return !!linkedFrom.get(target)?.has(type);
     },
-    [linkFrom, rLinksCounter, getLinkType],
+    [linkFrom, linkedFrom, getLinkType],
+  );
+
+  const isLinkTarget = useCallback(
+    (id, atStart) => {
+      if (!linkFrom) return true;
+      if (alreadyLinked(id, atStart)) return false;
+      const linkValidator = linkValidatorRef.current;
+      if (!linkValidator) return true;
+      const type = getLinkType(linkFrom.start, atStart);
+      return !linkValidator({ source: linkFrom.id, target: id, type });
+    },
+    [linkFrom, alreadyLinked, getLinkType],
   );
 
   const removeLinkMarker = useCallback(() => {
     if (linkFrom) {
       setLinkFrom(null);
+      linkValidatorRef.current = null;
     }
   }, [linkFrom]);
 
@@ -467,11 +688,14 @@ function Bars(props) {
         if (css.contains('wx-link')) {
           const toStart = css.contains('wx-left');
           if (!linkFrom) {
+            linkValidatorRef.current = schedule?.auto
+              ? api.getLinkValidator()
+              : null;
             setLinkFrom({ id, start: toStart });
             return;
           }
 
-          if (linkFrom.id !== id && !alreadyLinked(id, toStart)) {
+          if (isLinkTarget(id, toStart)) {
             api.exec('add-link', {
               link: {
                 source: linkFrom.id,
@@ -500,7 +724,9 @@ function Bars(props) {
       linkFrom,
       rLinksCounter,
       selectedLink,
-      alreadyLinked,
+      selectedLinkId,
+      schedule,
+      isLinkTarget,
       getLinkType,
       removeLinkMarker,
     ],
@@ -574,28 +800,6 @@ function Bars(props) {
     [criticalPath],
   );
 
-  const isLinkMarkerVisible = useCallback(
-    (id) => {
-      if (schedule?.auto) {
-        const summaryIds = tree.getSummaryId(id, true);
-        const linkFromSummaryIds = tree.getSummaryId(linkFrom.id, true);
-        return (
-          linkFrom?.id &&
-          !(Array.isArray(summaryIds) ? summaryIds : [summaryIds]).includes(
-            linkFrom.id,
-          ) &&
-          !(
-            Array.isArray(linkFromSummaryIds)
-              ? linkFromSummaryIds
-              : [linkFromSummaryIds]
-          ).includes(id)
-        );
-      }
-      return linkFrom;
-    },
-    [schedule, tree, linkFrom],
-  );
-
   return (
     <div
       className="wx-GKbcLEGA wx-bars"
@@ -629,22 +833,39 @@ function Bars(props) {
         selectedLink={selectedLink}
         readonly={readonly}
       />
+      {taskSchedule ? (
+        <div
+          className={`wx-GKbcLEGA wx-bar wx-${taskSchedule.task?.type || 'task'} wx-schedule-task`}
+          style={scheduleStyle(taskSchedule)}
+        ></div>
+      ) : null}
       {tasks.map((task) => {
-        if (task.$skip && task.$skip_baseline && !(rollups && rRollups?.[task.id])) return null;
+        const hasDeadline =
+          deadlines && task.deadline && typeof task.$x_deadline === 'number';
+        const hasConstraint =
+          task.constraint && typeof task.$x_constraint === 'number';
+        if (
+          task.$skip &&
+          task.$skip_baseline &&
+          !(rollups && rRollups?.[task.id]) &&
+          !hasDeadline &&
+          !hasConstraint
+        )
+          return null;
         const barClass =
           `wx-bar wx-${taskTypeCss(task.type)}` +
           (touched && taskMove && task.id === taskMove.id ? ' wx-touch' : '') +
           (linkFrom && linkFrom.id === task.id ? ' wx-selected' : '') +
           (isTaskCritical(task) ? ' wx-critical' : '') +
           (task.$reorder ? ' wx-reorder-task' : '') +
-          (splitTasks && task.segments ? ' wx-split' : '');
+          (splitTasks && task.segments ? ' wx-split' : '') +
+          (schedule?.auto && task.manual ? ' wx-manual' : '') +
+          (inactiveTasks && task.inactive ? ' wx-inactive' : '') +
+          (task.$noWorkingTime ? ' wx-no-working-time' : '');
         const leftLinkClass =
           'wx-link wx-left' +
           (linkFrom ? ' wx-visible' : '') +
-          (!linkFrom ||
-            (!alreadyLinked(task.id, true) && isLinkMarkerVisible(task.id))
-            ? ' wx-target'
-            : '') +
+          (isLinkTarget(task.id, true) ? ' wx-target' : '') +
           (linkFrom && linkFrom.id === task.id && linkFrom.start
             ? ' wx-selected'
             : '') +
@@ -652,10 +873,7 @@ function Bars(props) {
         const rightLinkClass =
           'wx-link wx-right' +
           (linkFrom ? ' wx-visible' : '') +
-          (!linkFrom ||
-            (!alreadyLinked(task.id, false) && isLinkMarkerVisible(task.id))
-            ? ' wx-target'
-            : '') +
+          (isLinkTarget(task.id, false) ? ' wx-target' : '') +
           (linkFrom && linkFrom.id === task.id && !linkFrom.start
             ? ' wx-selected'
             : '') +
@@ -672,7 +890,7 @@ function Bars(props) {
               >
                 {!readonly && !hasDuplicatedIds ? (
                   task.id === selectedLink?.target &&
-                    selectedLink?.type[2] === 's' ? (
+                  selectedLink?.type[2] === 's' ? (
                     <Button
                       type="danger"
                       css="wx-left wx-delete-button wx-delete-link"
@@ -697,8 +915,8 @@ function Bars(props) {
                       </div>
                     ) : null}
                     {!readonly &&
-                      !(splitTasks && task.segments) &&
-                      !(task.type === 'summary' && summary?.autoProgress) ? (
+                    !(splitTasks && task.segments) &&
+                    !(task.type === 'summary' && summary?.autoProgress) ? (
                       <div
                         className="wx-GKbcLEGA wx-progress-marker"
                         style={{ left: `calc(${task.progress}% - 10px)` }}
@@ -729,7 +947,7 @@ function Bars(props) {
 
                 {!readonly && !hasDuplicatedIds ? (
                   task.id === selectedLink?.target &&
-                    selectedLink?.type[2] === 'e' ? (
+                  selectedLink?.type[2] === 'e' ? (
                     <Button
                       type="danger"
                       css="wx-right wx-delete-button wx-delete-link"
@@ -757,6 +975,44 @@ function Bars(props) {
                 }
                 style={baselineStyle(task)}
               ></div>
+            ) : null}
+            {hasDeadline ? (
+              <div
+                className={
+                  'wx-GKbcLEGA wx-deadline' +
+                  (task.$overdue ? ' wx-overdue' : '')
+                }
+                style={deadlineStyle(task)}
+              >
+                <i className="wx-GKbcLEGA wxi-flag" data-deadline={task.id}></i>
+              </div>
+            ) : null}
+            {hasConstraint ? (
+              <div
+                className={
+                  `wx-GKbcLEGA wx-constraint wx-constraint-${task.constraint.type}` +
+                  (constraintOpensRight(task.constraint.type)
+                    ? ' wx-start'
+                    : ' wx-end') +
+                  (constraintViolated?.has(task.$id || task.id)
+                    ? ' wx-violated'
+                    : '') +
+                  (isConstraintCompact(task) ? ' wx-compact' : '')
+                }
+                style={constraintStyle(task)}
+                data-constraint-id={setID(task.id)}
+              >
+                <span className="wx-GKbcLEGA wx-constraint-badge">
+                  {task.constraint.type.toUpperCase()}
+                </span>
+                <span className="wx-GKbcLEGA wx-constraint-line"></span>
+                {!isMustConstraint(task.constraint.type) ? (
+                  <span
+                    className="wx-GKbcLEGA wx-constraint-arrow"
+                    aria-hidden="true"
+                  ></span>
+                ) : null}
+              </div>
             ) : null}
           </Fragment>
         );

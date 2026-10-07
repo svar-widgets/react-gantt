@@ -1,0 +1,16 @@
+.wx-constraint-cell.wx-aadN89t9 {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.wx-label.wx-aadN89t9 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wxi-warning.wx-aadN89t9 {
+  font-size: 14px;
+  color: var(--wx-gantt-constraint-violation-color);
+}

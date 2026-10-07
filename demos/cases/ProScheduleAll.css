@@ -6,20 +6,50 @@
 
 .bar.wx-D71fWZ7y {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   padding: 12px;
-  gap: 20px;
+  gap: 12px 20px;
   border-bottom: var(--wx-gantt-border);
 }
 
+.main.wx-D71fWZ7y {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .gantt.wx-D71fWZ7y {
+  flex: 1;
+  min-height: 0;
   position: relative;
-  height: 100%;
+  overflow: hidden;
+}
+
+.main.with-resources.wx-D71fWZ7y .gantt {
+  height: 60%;
+  flex: none;
+  border-bottom: 2px solid var(--wx-gantt-border-color);
+}
+
+.resource.wx-D71fWZ7y {
+  height: 40%;
   overflow: hidden;
 }
 
 .bar.wx-D71fWZ7y .wx-field.wx-left {
   margin-bottom: 0px;
+}
+
+.demo.wx-D71fWZ7y .bar.wx-D71fWZ7y .wx-field.wx-left > .wx-label {
+  width: auto;
+  text-align: left;
+}
+
+.demo.wx-D71fWZ7y .bar.wx-D71fWZ7y .wx-field.wx-left > .wx-field-control {
+  max-width: none;
 }
 
 .demo.wx-D71fWZ7y .wednesday-off {

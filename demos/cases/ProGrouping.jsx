@@ -30,7 +30,7 @@ function ProGrouping({ skinSettings }) {
 
     // delete columns that is used for grouping
     if (field) {
-      const index = cols.findIndex(c => c.id === field);
+      const index = cols.findIndex((c) => c.id === field);
       if (index >= 0) {
         cols.splice(index, 1);
       }
@@ -96,7 +96,6 @@ function ProGrouping({ skinSettings }) {
         </ContextMenu>
         {api && <Editor api={api} />}
       </div>
-      {api && <Editor api={api} />}
     </div>
   );
 }

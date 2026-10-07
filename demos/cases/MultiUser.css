@@ -1,0 +1,49 @@
+.rows.wx-aabA5gZk {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.row.wx-aabA5gZk:not(:last-child) {
+  border-bottom: var(--wx-border);
+}
+
+.row.config.wx-aabA5gZk {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  user-select: none;
+}
+
+.row.gantt.wx-aabA5gZk {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.status.wx-aabA5gZk {
+  padding: 2px;
+  color: var(--status-color);
+}
+
+.status.wx-aabA5gZk.connected {
+  --status-color: limegreen;
+}
+
+.status.wx-aabA5gZk.disconnected {
+  --status-color: tomato;
+}
+
+.pro.wx-aabA5gZk {
+  color: var(--demo-framework-color);
+  border: 1px solid var(--demo-framework-color);
+  border-radius: 4px;
+  padding: 0px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}

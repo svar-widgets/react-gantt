@@ -20,7 +20,7 @@ function ActionCell({ column, row, cell }) {
     );
   }, [action, row]);
 
-  return cell || icon ? (
+  return !row.$placeholder && (cell || icon) ? (
     <div style={{ textAlign: column.align }}>
       <i
         className={`wx-9DAESAHW wx-action-icon ${icon}${

@@ -1,0 +1,23 @@
+/* Orange corner dot when the graph has conflicts. */
+.wx-button.wx-conflicts,
+i.wx-conflicts {
+  position: relative;
+}
+.wx-button.wx-conflicts::after,
+i.wx-conflicts::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wx-gantt-constraint-violation-color);
+  pointer-events: none;
+}
+.wx-button.wx-conflicts::after {
+  top: 2px;
+  right: 2px;
+}
+i.wx-conflicts::after {
+  top: 0;
+  right: -2px;
+}

@@ -1,0 +1,21 @@
+.wx-overdue-label.wx-aabryJde {
+  color: var(--wx-gantt-deadline-overdue-color);
+  font: var(--wx-gantt-bar-font);
+  pointer-events: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: normal;
+  text-align: left;
+}
+
+.wx-overdue-label.float.wx-aabryJde {
+  position: absolute;
+  left: 100%;
+  top: -2px;
+  height: 100%;
+  margin-left: 2px;
+}
+
+.wx-text-out.wx-aabryJde .wx-overdue-label {
+  margin-top: -2px;
+}

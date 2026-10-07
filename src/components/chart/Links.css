@@ -32,6 +32,11 @@
   stroke: var(--wx-gantt-link-critical-color-hovered);
 }
 
+.wx-line-selectable.wx-violated.wx-dkx3NwEn:hover > .wx-line-draw {
+  stroke: var(--wx-gantt-link-violation-color);
+  opacity: 0.85;
+}
+
 .wx-line-selectable.wx-dkx3NwEn {
   cursor: pointer;
 }
@@ -42,4 +47,14 @@
 
 .wx-critical.wx-dkx3NwEn > .wx-line-draw {
   stroke: var(--wx-gantt-link-critical-color);
+}
+
+.wx-violated.wx-dkx3NwEn > .wx-line-draw {
+  stroke: var(--wx-gantt-link-violation-color);
+  stroke-dasharray: 5 5;
+}
+
+.wx-line.wx-line-selected.wx-violated.wx-dkx3NwEn > .wx-line-draw {
+  stroke: var(--wx-color-danger);
+  stroke-dasharray: none;
 }

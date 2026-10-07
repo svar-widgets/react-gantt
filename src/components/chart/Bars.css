@@ -17,6 +17,9 @@
   transform: rotate(45deg) scale(0.75);
   border-radius: var(--wx-gantt-milestone-border-radius);
 }
+.wx-rollup.wx-inactive.wx-GKbcLEGA {
+  background-color: var(--wx-gantt-inactive-color);
+}
 
 .wx-baseline.wx-GKbcLEGA {
   position: absolute;
@@ -28,6 +31,104 @@
   transform: rotate(45deg) scale(0.75);
   border-radius: var(--wx-gantt-milestone-border-radius);
 }
+
+.wx-deadline.wx-GKbcLEGA {
+  position: absolute;
+  display: flex;
+  font-size: 20px;
+  translate: -5px 0;
+  z-index: 2;
+  color: var(--wx-gantt-deadline-color, #9fa1ae);
+}
+.wx-deadline.wx-overdue.wx-GKbcLEGA {
+  color: var(--wx-gantt-deadline-overdue-color, #fe6158);
+}
+.wx-deadline.wx-GKbcLEGA > i {
+  height: 20px;
+  cursor: pointer;
+}
+
+.wx-constraint.wx-GKbcLEGA {
+  position: absolute;
+  width: 0;
+  z-index: 2;
+  /* Pin sits on the bar edge; let resize and move reach the task. */
+  pointer-events: none;
+  --wx-constraint-pin-color: var(--wx-gantt-icon-color);
+}
+.wx-constraint-line.wx-GKbcLEGA,
+.wx-constraint-arrow.wx-GKbcLEGA {
+  pointer-events: none;
+}
+.wx-constraint.wx-violated.wx-GKbcLEGA {
+  --wx-constraint-pin-color: var(--wx-gantt-constraint-violation-color);
+}
+.wx-constraint-line.wx-GKbcLEGA {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  bottom: 1px;
+  width: 2px;
+  translate: -50% 0;
+  border-radius: 2px;
+  background: var(--wx-constraint-pin-color);
+}
+.wx-constraint-arrow.wx-GKbcLEGA {
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 12px;
+  margin-top: -6px;
+  background: var(--wx-constraint-pin-color);
+  --wx-constraint-arrow-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 12'%3E%3Cpath fill='%23000' d='M0 0.8Q0 0 1 0.3L5.2 5.1Q6 6 5.2 6.9L1 11.7Q0 12 0 11.2Z'/%3E%3C/svg%3E");
+  -webkit-mask: var(--wx-constraint-arrow-mask) center / 100% 100% no-repeat;
+  mask: var(--wx-constraint-arrow-mask) center / 100% 100% no-repeat;
+}
+/* 1px (half of 2px line) + 2px gap */
+.wx-constraint.wx-start.wx-GKbcLEGA .wx-constraint-arrow {
+  left: calc(50% + 3px);
+}
+.wx-constraint.wx-end.wx-GKbcLEGA .wx-constraint-arrow {
+  right: calc(50% + 3px);
+  transform: scaleX(-1);
+}
+.wx-constraint-badge.wx-GKbcLEGA {
+  position: absolute;
+  top: 1px;
+  height: 14px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 2px;
+  border-radius: 2px;
+  background: var(--wx-background-alt);
+  white-space: nowrap;
+  pointer-events: auto;
+}
+.wx-constraint.wx-start.wx-GKbcLEGA .wx-constraint-badge {
+  right: calc(50% + 3px);
+}
+.wx-constraint.wx-end.wx-GKbcLEGA .wx-constraint-badge {
+  left: calc(50% + 3px);
+}
+.wx-constraint.wx-violated.wx-GKbcLEGA .wx-constraint-badge {
+  background: var(--wx-gantt-constraint-violated-badge-bg);
+}
+.wx-constraint.wx-compact.wx-GKbcLEGA .wx-constraint-badge {
+  display: none;
+}
+/* Line is the only visible target once the badge is hidden. */
+.wx-constraint.wx-compact.wx-GKbcLEGA .wx-constraint-line {
+  pointer-events: auto;
+}
+.wx-constraint.wx-compact.wx-GKbcLEGA:hover .wx-constraint-badge {
+  display: inline-flex;
+}
+
 .wx-bars.wx-GKbcLEGA {
   position: absolute;
   top: 0;
@@ -58,6 +159,12 @@
 
 .wx-bar.wx-reorder-task.wx-GKbcLEGA {
   z-index: 3;
+}
+
+.wx-bar.wx-schedule-task.wx-GKbcLEGA {
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.5;
 }
 .wx-bar.wx-GKbcLEGA .wx-content {
   overflow: hidden;
@@ -126,7 +233,8 @@
   left: 100%;
 }
 
-.wx-milestone.wx-GKbcLEGA .wx-content {
+.wx-milestone.wx-GKbcLEGA .wx-content,
+.wx-milestone.wx-schedule-task.wx-GKbcLEGA {
   height: 100%;
   background-color: var(--wx-gantt-milestone-color);
   transform: rotate(45deg) scale(0.75);
@@ -155,7 +263,7 @@
   background: var(--wx-gantt-progress-border-color);
   clip-path: polygon(50% 0, 100% 30%, 100% 100%, 0 100%, 0 30%);
   color: var(--wx-color-font);
-  z-index: 3;
+  z-index: 5;
   font-size: calc(var(--wx-font-size-sm) - 2px);
   border-radius: 4px;
   cursor: ew-resize;
@@ -261,6 +369,15 @@
 .wx-cut.wx-GKbcLEGA {
   opacity: 50%;
 }
+.wx-bar.wx-manual:not(.wx-milestone):not(.wx-split):not(:focus).wx-GKbcLEGA,
+.wx-bar.wx-manual.wx-split.wx-GKbcLEGA .wx-segment {
+  outline: 1px solid var(--wx-gantt-manual-border-color);
+  outline-offset: 1px;
+}
+.wx-milestone.wx-manual.wx-GKbcLEGA .wx-content {
+  outline: 1px solid var(--wx-gantt-manual-border-color);
+  outline-offset: 1.6px;
+}
 .wx-bar:not(.wx-milestone):focus.wx-GKbcLEGA {
   outline: 1px solid var(--wx-color-primary);
   outline-offset: 1px;
@@ -323,6 +440,29 @@
 .wx-critical.wx-split.wx-GKbcLEGA .wx-link.wx-selected,
 .wx-critical.wx-split.wx-GKbcLEGA .wx-link.wx-selected .wx-inner {
   border-color: var(--wx-gantt-task-critical-color);
+}
+
+.wx-task.wx-inactive:not(.wx-split).wx-GKbcLEGA,
+.wx-summary.wx-inactive.wx-GKbcLEGA,
+.wx-task.wx-GKbcLEGA .wx-segment.wx-inactive {
+  background-color: var(--wx-gantt-inactive-color);
+}
+.wx-milestone.wx-inactive.wx-GKbcLEGA .wx-content,
+.wx-milestone.wx-inactive.wx-schedule-task.wx-GKbcLEGA {
+  background-color: var(--wx-gantt-inactive-color);
+}
+.wx-milestone.wx-inactive.wx-GKbcLEGA {
+  border-color: var(--wx-gantt-inactive-color);
+}
+.wx-task.wx-inactive.wx-GKbcLEGA .wx-progress-percent,
+.wx-summary.wx-inactive.wx-GKbcLEGA .wx-progress-percent,
+.wx-inactive.wx-GKbcLEGA .wx-segment .wx-progress-percent {
+  background-color: var(--wx-gantt-inactive-fill-color);
+}
+
+/* on the bar itself, so segments, the milestone shape and the fill go with it */
+.wx-no-working-time.wx-GKbcLEGA {
+  opacity: var(--wx-gantt-no-working-time-opacity, 0.45);
 }
 
 .wx-slack.wx-GKbcLEGA {

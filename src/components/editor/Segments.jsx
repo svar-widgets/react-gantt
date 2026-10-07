@@ -78,12 +78,13 @@ export default function Segments({ api, autoSave, segments, onExtChange }) {
     setGridApi(t);
   }
 
-  function getActionData(evData) {
+  // `next` is the updated list: state setters are async, so pass it explicitly
+  function getActionData(evData, next) {
     return {
       view: 'segments',
       event: evData,
       values: {
-        segments: segmentsState.length ? [...segmentsState] : null,
+        segments: next.length ? [...next] : null,
       },
     };
   }
@@ -104,11 +105,14 @@ export default function Segments({ api, autoSave, segments, onExtChange }) {
     } else {
       onChange &&
         onChange(
-          getActionData({
-            id,
-            action: 'update-task',
-            data: update,
-          }),
+          getActionData(
+            {
+              id,
+              action: 'update-task',
+              data: update,
+            },
+            next,
+          ),
         );
     }
   }
@@ -137,16 +141,20 @@ export default function Segments({ api, autoSave, segments, onExtChange }) {
     if (autoSave) {
       api.exec('update-task', update);
     } else {
-      setSegmentsState((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, ...segment } : s)),
+      const next = segmentsState.map((s) =>
+        s.id === id ? { ...s, ...segment } : s,
       );
+      setSegmentsState(next);
       onChange &&
         onChange(
-          getActionData({
-            id,
-            action: 'update-task',
-            data: update,
-          }),
+          getActionData(
+            {
+              id,
+              action: 'update-task',
+              data: update,
+            },
+            next,
+          ),
         );
     }
   }

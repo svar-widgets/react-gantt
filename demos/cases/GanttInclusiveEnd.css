@@ -1,0 +1,26 @@
+.demo.wx-aacVEeRx {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar.wx-aacVEeRx {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px 20px;
+  border-bottom: var(--wx-gantt-border);
+}
+
+.hint.wx-aacVEeRx {
+  color: var(--wx-color-font-alt, #71717a);
+  font-size: var(--wx-font-size, 14px);
+}
+
+.gantt.wx-aacVEeRx {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}

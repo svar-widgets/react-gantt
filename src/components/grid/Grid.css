@@ -8,6 +8,11 @@
   box-sizing: content-box;
 }
 
+.wx-table-container-subgrid.wx-rHj6070p {
+  border-right: none;
+  border-left: var(--wx-gantt-border);
+}
+
 /*table*/
 .wx-table.wx-rHj6070p {
   --wx-table-select-background: var(--wx-gantt-select-color);
@@ -66,6 +71,8 @@
 .wx-table.wx-rHj6070p .wx-grid .wx-header .wx-cell {
   font: var(--wx-grid-header-font);
   text-transform: var(--wx-grid-header-text-transform);
+}
+.wx-table.wx-rHj6070p .wx-grid .wx-header .wx-h-row:not(:last-child) .wx-cell {
   border-bottom-color: transparent;
 }
 .wx-table.wx-rHj6070p .wx-grid .wx-header .wx-cell.wx-filter {
@@ -97,9 +104,17 @@
   width: 100%;
   background: var(--wx-background-alt);
   border-top: var(--wx-grid-body-row-border);
+  z-index: 1;
 }
 .wx-table.wx-rHj6070p .wx-grid .wx-reorder-task.wx-selected {
   background: var(--wx-gantt-select-color);
   border-top: transparent;
   border-bottom: transparent;
+}
+.wx-table.wx-rHj6070p .wx-grid .wx-inactive-row.wx-row {
+  color: var(--wx-gantt-inactive-color);
+}
+/*placeholder row*/
+.wx-table.wx-rHj6070p .wx-grid .wx-placeholder-row {
+  color: var(--wx-color-font-disabled);
 }

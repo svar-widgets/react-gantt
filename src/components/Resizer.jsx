@@ -1,180 +1,120 @@
-import { useMemo, useRef, useCallback } from 'react';
-import { useStore } from '@svar-ui/lib-react';
+import { useEffect, useRef } from 'react';
 import './Resizer.css';
 
 function Resizer(props) {
   const {
-    api,
-    position = 'after',
-    size = 4,
-    dir = 'x',
-    onMove,
-    containerWidth = 0,
-    rightThreshold = 50,
+    side = 'left',
+    layout = 'both',
+    draggable = false,
+    hideButtonsUntilHover = false,
+    startButton = null,
+    endButton = null,
+    panelWidth = 0,
+    // resizeInvert, onResize, onResizeEnd are read via propsRef in window handlers
+    onResizeStart,
+    onExpandStart,
+    onExpandEnd,
   } = props;
 
-  const gridWidth = useStore(api, 'gridWidth');
-  const displayMode = useStore(api, 'displayMode');
-  const gridCollapseThreshold = useStore(api, '_gridCollapseThreshold');
-  const compactMode = useStore(api, '_compactMode');
+  const cursor = draggable ? 'ew-resize' : 'auto';
 
-  function getBox(value) {
-    let offset = 0;
-    if (position === 'center') offset = size / 2;
-    else if (position === 'before') offset = size;
-
-    const box = {
-      size: [size + 'px', 'auto'],
-      p: [value - offset + 'px', '0px'],
-      p2: ['auto', '0px'],
-    };
-
-    if (dir !== 'x') {
-      for (let name in box) box[name] = box[name].reverse();
-    }
-    return box;
-  }
+  // latest props for the long-lived window listeners
+  const propsRef = useRef(props);
+  propsRef.current = props;
 
   const startRef = useRef(0);
   const posRef = useRef();
-  const timeoutRef = useRef();
+  const widthRef = useRef(null); // last dragged width, null when not dragging
 
-  const gridWidthRef = useRef(gridWidth);
-  gridWidthRef.current = gridWidth;
-  const displayModeRef = useRef(displayMode);
-  displayModeRef.current = displayMode;
-  const compactModeRef = useRef(compactMode);
-  compactModeRef.current = compactMode;
-  const gridCollapseThresholdRef = useRef(gridCollapseThreshold);
-  gridCollapseThresholdRef.current = gridCollapseThreshold;
-
-  function getEventPos(ev) {
-    return dir === 'x' ? ev.clientX : ev.clientY;
+  // stable handlers, created once so add/removeEventListener match
+  const handlersRef = useRef(null);
+  if (!handlersRef.current) {
+    const h = {};
+    h.widthAt = (ev) => {
+      const delta = ev.clientX - startRef.current;
+      return propsRef.current.resizeInvert
+        ? posRef.current - delta
+        : posRef.current + delta;
+    };
+    h.move = (ev) => {
+      widthRef.current = h.widthAt(ev);
+      propsRef.current.onResize?.(widthRef.current);
+    };
+    h.stop = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', h.move);
+      window.removeEventListener('mouseup', h.up);
+    };
+    h.end = (endWidth) => {
+      widthRef.current = null;
+      h.stop();
+      propsRef.current.onResizeEnd?.(endWidth);
+    };
+    h.up = (ev) => {
+      h.end(h.widthAt(ev));
+    };
+    handlersRef.current = h;
   }
 
-  const cursor = useMemo(
-    () =>
-      displayMode !== 'all' ? 'auto' : dir === 'x' ? 'ew-resize' : 'ns-resize',
-    [displayMode, dir],
-  );
+  function down(ev) {
+    if (!draggable) return;
+    const h = handlersRef.current;
 
-  const move = useCallback(
-    (ev) => {
-      const newPos = posRef.current + getEventPos(ev) - startRef.current;
+    startRef.current = ev.clientX;
+    posRef.current = widthRef.current = panelWidth;
+    onResizeStart?.();
 
-      api.exec('resize-grid', {
-        width: newPos,
-      });
-      let nextDisplay;
+    document.body.style.cursor = cursor;
+    document.body.style.userSelect = 'none';
 
-      if (newPos <= gridCollapseThresholdRef.current) {
-        nextDisplay = 'chart';
-      } else if (containerWidth - newPos <= rightThreshold) {
-        nextDisplay = 'grid';
-      } else {
-        nextDisplay = 'all';
-      }
-
-      if (displayModeRef.current !== nextDisplay) {
-        api.exec('set-display-mode', {
-          mode: nextDisplay,
-        });
-      }
-
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(
-        () => onMove && onMove(newPos),
-        100,
-      );
-    },
-    [api, containerWidth, rightThreshold, onMove, dir],
-  );
-
-  const up = useCallback(() => {
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    window.removeEventListener('mousemove', move);
-    window.removeEventListener('mouseup', up);
-  }, [move]);
-
-  const down = useCallback(
-    (ev) => {
-      // Prevent dragging when in normal mode and only one view is visible
-      if (
-        compactModeRef.current ||
-        displayModeRef.current === 'grid' ||
-        displayModeRef.current === 'chart'
-      ) {
-        return;
-      }
-
-      startRef.current = getEventPos(ev);
-      posRef.current = gridWidthRef.current;
-
-      document.body.style.cursor = cursor;
-      document.body.style.userSelect = 'none';
-
-      window.addEventListener('mousemove', move);
-      window.addEventListener('mouseup', up);
-    },
-    [cursor, move, up, dir],
-  );
-
-  function handleExpand(direction) {
-    let mode;
-    if (compactMode) {
-      mode = displayMode === 'chart' ? 'grid' : 'chart';
-    } else {
-      if (displayMode === 'grid' || displayMode === 'chart') {
-        mode = 'all';
-      } else mode = direction === 'left' ? 'chart' : 'grid';
-    }
-
-    api.exec('set-display-mode', { mode });
+    window.addEventListener('mousemove', h.move);
+    window.addEventListener('mouseup', h.up);
   }
 
-  function handleExpandLeft() {
-    handleExpand('left');
-  }
-
-  function handleExpandRight() {
-    handleExpand('right');
-  }
-
-  const b = useMemo(
-    () => getBox(gridWidth),
-    [gridWidth, position, size, dir],
-  );
+  // unmounted mid-drag: still commit, so the store drops its drag snapshot
+  useEffect(() => {
+    const h = handlersRef.current;
+    return () => {
+      if (widthRef.current != null) h.end(widthRef.current);
+      else h.stop();
+    };
+  }, []);
 
   const rootClassName = [
+    'wx-pFykzMlT',
     'wx-resizer',
-    `wx-resizer-${dir}`,
-    `wx-resizer-display-${displayMode}`,
+    `wx-resizer-${side}`,
+    `wx-resizer-layout-${layout}`,
+    hideButtonsUntilHover ? 'wx-resizer-grip-hover' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
   return (
-    <div
-      className={'wx-pFykzMlT ' + rootClassName}
-      onMouseDown={down}
-      style={{ width: b.size[0], height: b.size[1], cursor }}
-    >
+    <div className={rootClassName} onMouseDown={down} style={{ cursor }}>
       <div className="wx-pFykzMlT wx-button-expand-box">
-        <div className="wx-pFykzMlT wx-button-expand-content wx-button-expand-left">
-          <i
-            className="wx-pFykzMlT wxi-menu-left"
-            onClick={handleExpandLeft}
-          ></i>
-        </div>
-        <div className="wx-pFykzMlT wx-button-expand-content wx-button-expand-right">
-          <i
-            className="wx-pFykzMlT wxi-menu-right"
-            onClick={handleExpandRight}
-          ></i>
-        </div>
+        {startButton?.visible ? (
+          <div
+            className={`wx-pFykzMlT wx-button-expand-content wx-button-expand-${startButton.side}`}
+          >
+            <i
+              className={`wx-pFykzMlT wxi-menu-${startButton.icon}`}
+              onClick={onExpandStart}
+            ></i>
+          </div>
+        ) : null}
+        {endButton?.visible ? (
+          <div
+            className={`wx-pFykzMlT wx-button-expand-content wx-button-expand-${endButton.side}`}
+          >
+            <i
+              className={`wx-pFykzMlT wxi-menu-${endButton.icon}`}
+              onClick={onExpandEnd}
+            ></i>
+          </div>
+        ) : null}
       </div>
-      <div className="wx-pFykzMlT wx-resizer-line"></div>
     </div>
   );
 }

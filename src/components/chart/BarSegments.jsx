@@ -1,7 +1,14 @@
+import { useContext } from 'react';
+import { getSegmentProgress } from '@svar-ui/gantt-store';
+import { useStore } from '@svar-ui/lib-react';
+import storeContext from '../../context';
 import './BarSegments.css';
 
 function BarSegments(props) {
   const { task, type } = props;
+
+  const api = useContext(storeContext);
+  const inactiveTasks = useStore(api, 'inactiveTasks');
 
   function segmentStyle(i) {
     const s = task.segments[i];
@@ -13,32 +20,12 @@ function BarSegments(props) {
     };
   }
 
-  function getSegProgress(segmentIndex) {
-    if (!task.progress) return 0;
-
-    const progress = (task.duration * task.progress) / 100;
-    const segments = task.segments;
-    let duration = 0,
-      i = 0,
-      result = null;
-    do {
-      const s = segments[i];
-      if (i === segmentIndex) {
-        if (duration > progress) result = 0;
-        else result = Math.min((progress - duration) / s.duration, 1) * 100;
-      }
-      duration += s.duration;
-      i++;
-    } while (result === null && i < segments.length);
-    return result || 0;
-  }
-
   return (
     <div className="wx-segments wx-GKbcLEGA">
       {task.segments.map((seg, i) => (
         <div
           key={i}
-          className={`wx-segment wx-bar wx-${type} wx-GKbcLEGA`}
+          className={`wx-segment wx-bar wx-${type} wx-GKbcLEGA${inactiveTasks && task.inactive ? ' wx-inactive' : ''}`}
           data-segment={i}
           style={segmentStyle(i)}
         >
@@ -46,7 +33,7 @@ function BarSegments(props) {
             <div className="wx-progress-wrapper">
               <div
                 className="wx-progress-percent wx-GKbcLEGA"
-                style={{ width: `${getSegProgress(i)}%` }}
+                style={{ width: `${getSegmentProgress(task, i)}%` }}
               ></div>
             </div>
           ) : null}

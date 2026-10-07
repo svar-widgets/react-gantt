@@ -1,0 +1,20 @@
+.data.wx-aacqAtjt {
+  white-space: nowrap;
+  background-color: var(--wx-tooltip-background);
+  padding: 3px 8px;
+}
+
+.text.wx-aacqAtjt {
+  font-family: var(--wx-font-family);
+  color: var(--wx-color-primary-font);
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.text.wx-aacqAtjt:last-child {
+  margin-bottom: 0;
+}
+
+.caption.wx-aacqAtjt {
+  font-weight: 700;
+}

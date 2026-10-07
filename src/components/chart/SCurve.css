@@ -1,0 +1,55 @@
+.wx-scurve.wx-aabFMYCJ {
+  position: absolute;
+  left: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 3;
+}
+
+.wx-scurve.wx-aabFMYCJ .wx-scurve-scheduled-duration,
+.wx-scurve.wx-aabFMYCJ .wx-scurve-scheduled-progress {
+  color: var(--wx-gantt-scurve-scheduled-color, #ffc975);
+  stroke: var(--wx-gantt-scurve-scheduled-color, #ffc975);
+  stroke-width: var(--wx-gantt-scurve-scheduled-width, 1);
+  stroke-dasharray: var(--wx-gantt-scurve-scheduled-dasharray, none);
+}
+
+.wx-scurve.wx-aabFMYCJ .wx-scurve-earned-duration,
+.wx-scurve.wx-aabFMYCJ .wx-scurve-earned-progress {
+  color: var(--wx-gantt-scurve-earned-color, #fe6158);
+  stroke: var(--wx-gantt-scurve-earned-color, #fe6158);
+  stroke-width: var(--wx-gantt-scurve-earned-width, 1);
+  stroke-dasharray: var(--wx-gantt-scurve-earned-dasharray, 4 4);
+}
+
+.wx-scurve.wx-aabFMYCJ .wx-scurve-baseline-duration,
+.wx-scurve.wx-aabFMYCJ .wx-scurve-baseline-progress {
+  color: var(--wx-gantt-scurve-baseline-color, #2c2f3c);
+  stroke: var(--wx-gantt-scurve-baseline-color, #2c2f3c);
+  stroke-width: var(--wx-gantt-scurve-baseline-width, 1);
+  stroke-dasharray: var(--wx-gantt-scurve-baseline-dasharray, 2 2);
+}
+
+.wx-scurve.wx-aabFMYCJ .wx-scurve-line {
+  fill: none;
+}
+
+.wx-scurve.wx-aabFMYCJ .wx-scurve-hit {
+  pointer-events: auto;
+  fill: transparent;
+}
+
+.wx-scurve.wx-aabFMYCJ .wx-scurve-dot {
+  pointer-events: none;
+  fill: currentColor;
+  stroke: var(--wx-background, #fff);
+  stroke-width: 1;
+  stroke-dasharray: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.1s ease-out;
+}
+
+.wx-scurve.wx-aabFMYCJ .wx-scurve-point:hover .wx-scurve-dot {
+  transform: scale(1.5);
+}

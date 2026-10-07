@@ -8,9 +8,9 @@ const GanttCustomZoom = ({ skinSettings }) => {
 
   return (
     <div className="wx-6q6Giv9n demo">
-      <h4>
+      <div className="wx-6q6Giv9n hint">
         Point over Gantt chart, then hold Ctrl and use mouse wheel to zoom
-      </h4>
+      </div>
       <div className="wx-6q6Giv9n gtcell">
         <Gantt
           {...skinSettings}

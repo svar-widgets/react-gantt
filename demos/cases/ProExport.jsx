@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { getData } from '../data';
+import { subDays } from 'date-fns';
+import { getData, resources, assignments } from '../data';
 import { Gantt, version } from '../../src/';
 import { Toolbar, registerToolbarItem } from '@svar-ui/react-toolbar';
 import { Switch, RichSelect, Segmented } from '@svar-ui/react-core';
@@ -10,20 +11,22 @@ registerToolbarItem('segmented', Segmented);
 registerToolbarItem('richselect', RichSelect);
 
 export default function ProExport({ skinSettings }) {
-
   const [size, setSize] = useState('auto');
   const [fit, setFit] = useState(true);
   const [api, setApi] = useState();
   const [config, setConfig] = useState('basic');
 
-  const data = useMemo(() => {
-    const advanced = config === 'advanced';
-    return getData(null, {
-      splitTasks: advanced,
-      baselines: advanced,
-      unscheduledTasks: advanced,
-    });
-  }, [config]);
+  const data = useMemo(
+    () =>
+      getData(null, {
+        splitTasks: true,
+        baselines: true,
+        constraints: true,
+        deadlines: true,
+      }),
+    [],
+  );
+  const [tasks, setTasks] = useState(data.tasks);
 
   const items = useMemo(() => {
     return [
@@ -40,45 +43,38 @@ export default function ProExport({ skinSettings }) {
           { id: 'a3-landscape', label: 'A3 Landscape' },
           { id: 'a3', label: 'A3 Portrait' },
         ],
-        handler: () => {},
       },
       { text: 'Fit to page' },
       {
         id: 'fit',
         comp: 'switch',
         value: fit,
-        handler: () => {},
       },
       {
         id: 'export-pdf',
         comp: 'button',
         text: 'To PDF',
-        handler: () => exportOthers('pdf'),
       },
       {
         id: 'export-png',
         comp: 'button',
         text: 'To PNG',
-        handler: () => exportOthers('png'),
       },
       { comp: 'separator' },
       {
         id: 'export-xlsx',
         comp: 'button',
         text: 'To XLSX',
-        handler: () => exportExcel(false),
       },
       {
         id: 'export-xlsx-chart',
         comp: 'button',
         text: 'To XLSX with Chart',
-        handler: () => exportExcel(true),
       },
       {
         id: 'export-mspx',
         comp: 'button',
         text: 'To MS Project (XML)',
-        handler: () => exportOthers('mspx'),
       },
       { comp: 'spacer' },
       {
@@ -89,10 +85,9 @@ export default function ProExport({ skinSettings }) {
           { id: 'basic', label: 'Basic' },
           { id: 'advanced', label: 'Advanced' },
         ],
-        handler: () => {},
       },
     ];
-  }, [size, fit, config, api]);
+  }, [size, fit, config]);
 
   const markers = useMemo(
     () => [
@@ -132,8 +127,65 @@ export default function ProExport({ skinSettings }) {
                 header: 'Task name',
                 width: 200,
               },
+              {
+                id: 'deadline',
+                header: 'Deadline',
+                width: 110,
+                type: 'date',
+              },
+              {
+                id: 'constraint_type',
+                header: 'Constraint',
+                width: 110,
+                type: 'string',
+              },
+              {
+                id: 'constraint_date',
+                header: 'Constraint date',
+                width: 130,
+                type: 'date',
+              },
             ]
-          : null,
+          : [
+              { id: 'id', header: 'ID', width: 60 },
+              { id: 'text', header: 'Task name', width: 200 },
+              {
+                id: 'start',
+                header: 'Start',
+                width: 110,
+                type: 'date',
+              },
+              {
+                id: 'end',
+                header: 'End',
+                width: 110,
+                type: 'date',
+              },
+              {
+                id: 'duration',
+                header: 'Duration',
+                width: 80,
+                type: 'number',
+              },
+              {
+                id: 'deadline',
+                header: 'Deadline',
+                width: 110,
+                type: 'date',
+              },
+              {
+                id: 'constraint_type',
+                header: 'Constraint',
+                width: 110,
+                type: 'string',
+              },
+              {
+                id: 'constraint_date',
+                header: 'Constraint date',
+                width: 130,
+                type: 'date',
+              },
+            ],
         sheetNames: ['Tasks', 'Links'],
         dateFormat: 'yyyy-mmm-dd',
         visual,
@@ -160,11 +212,35 @@ export default function ProExport({ skinSettings }) {
     });
   }
 
+  function applyConfigTasks(config) {
+    const serialized = api.serialize();
+    return serialized.map((t) => {
+      if (t.id !== 22) return t;
+      if (config === 'advanced') {
+        const copy = { ...t };
+        delete copy.start;
+        return copy;
+      }
+      if (!t.start && t.end && t.duration) {
+        return {
+          ...t,
+          start: subDays(t.end, t.duration),
+        };
+      }
+      return t;
+    });
+  }
+
   function handleChange({ item, value }) {
     if (item.id === 'size') setSize(value);
     else if (item.id === 'fit') setFit(value);
-    else if (item.id === 'config') setConfig(value);
+    else if (item.id === 'config') {
+      setTasks(applyConfigTasks(value));
+      setConfig(value);
+    }
   }
+
+  const schedule = useMemo(() => ({ auto: true }), []);
 
   return (
     <>
@@ -174,7 +250,7 @@ export default function ProExport({ skinSettings }) {
           <Gantt
             init={setApi}
             {...skinSettings}
-            tasks={data.tasks}
+            tasks={tasks}
             links={data.links}
             scales={data.scales}
           />
@@ -184,12 +260,16 @@ export default function ProExport({ skinSettings }) {
             baselines={true}
             splitTasks={true}
             unscheduledTasks={true}
+            deadlines={true}
+            schedule={schedule}
             markers={markers}
             calendar={calendar}
             {...skinSettings}
-            tasks={data.tasks}
+            tasks={tasks}
             links={data.links}
             scales={data.scales}
+            resources={resources}
+            assignments={assignments}
           />
         )}
       </div>

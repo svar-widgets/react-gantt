@@ -29,3 +29,7 @@
   overflow: hidden;
   white-space: nowrap;
 }
+
+.wx-hint.wx-pqc08MHU {
+  color: var(--wx-color-font-disabled);
+}

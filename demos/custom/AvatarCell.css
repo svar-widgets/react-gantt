@@ -1,8 +1,8 @@
-.container {
+.container.wx-aaa6lKin {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-.container > div {
+.container.wx-aaa6lKin > div {
   margin-top: 5px;
 }

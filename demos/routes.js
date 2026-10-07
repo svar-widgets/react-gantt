@@ -1,6 +1,7 @@
 import BasicInit from './cases/BasicInit.jsx';
 import GanttProvider from './cases/GanttProvider.jsx';
 import GanttBatchProvider from './cases/GanttBatchProvider.jsx';
+import MultiUser from './cases/MultiUser.jsx';
 import GanttBackend from './cases/GanttBackend.jsx';
 import GanttExcelImport from './cases/GanttExcelImport.jsx';
 import GanttScales from './cases/GanttScales.jsx';
@@ -12,8 +13,9 @@ import GanttPreventActions from './cases/GanttPreventActions.jsx';
 import GanttForm from './cases/GanttForm.jsx';
 import GanttSizes from './cases/GanttSizes.jsx';
 import GanttMultiple from './cases/GanttMultiple.jsx';
-import GanttPerformance from './cases/GanttPerformance.jsx';
 import GanttDisplayMode from './cases/GanttDisplayMode.jsx';
+import GanttPerformance from './cases/GanttPerformance.jsx';
+import GanttDragFromOutside from './cases/GanttDragFromOutside.jsx';
 
 
 import GanttTooltips from './cases/GanttTooltips.jsx';
@@ -29,6 +31,7 @@ import GanttZoom from './cases/GanttZoom.jsx';
 import GanttCustomZoom from './cases/GanttCustomZoom.jsx';
 import GanttLengthUnit from './cases/GanttLengthUnit.jsx';
 import GanttTaskTypes from './cases/GanttTaskTypes.jsx';
+import GanttInclusiveEnd from './cases/GanttInclusiveEnd.jsx';
 import ChartCellBorders from './cases/ChartBorders.jsx';
 import ContextMenu from './cases/ContextMenu.jsx';
 import ContextMenuHandler from './cases/ContextMenuHandler.jsx';
@@ -130,11 +133,16 @@ export const links = [
     HeaderMenu,
     'GridHeaderMenu',
   ],
-
   { group: 'Tasks' },
   ['/task-types/:skin', 'Task types', GanttTaskTypes, 'GanttTaskTypes'],
   ['/templates/:skin', 'Custom text', GanttText, 'GanttText'],
   ['/tooltips/:skin', 'Tooltips', GanttTooltips, 'GanttTooltips'],
+  [
+    '/inclusive-end/:skin',
+    'Inclusive end date',
+    GanttInclusiveEnd,
+    'GanttInclusiveEnd',
+  ],
 
   { group: 'Data operations' },
   [
@@ -148,6 +156,12 @@ export const links = [
     'Edit tasks in grid',
     GridInlineEditors,
     'GridInlineEditors',
+  ],
+  [
+    '/drag-from-outside/:skin',
+    'Add tasks by drag-n-drop from outside',
+    GanttDragFromOutside,
+    'GanttDragFromOutside',
   ],
   ['/readonly/:skin', 'Readonly', GanttReadOnly, 'GanttReadOnly'],
   [
@@ -194,6 +208,7 @@ export const links = [
     GanttBatchProvider,
     'GanttBatchProvider',
   ],
+  ['/multi-user/:skin', 'Multi-user editing', MultiUser, 'MultiUser'],
   [
     '/excel-import/:skin',
     'Import from Excel / CSV',

@@ -15,6 +15,7 @@ import storeContext from '../../context';
 import { useStore, useStoreWithCounter } from '@svar-ui/lib-react';
 import './Chart.css';
 import TimeScales from './TimeScale.jsx';
+import SCurve from './SCurve.jsx';
 import { createZoomWheelHandler } from '../../helpers/zoom';
 import { useRenderTime } from '../../helpers/debug.js';
 
@@ -34,9 +35,10 @@ function Chart(props) {
   const groupBy = useStore(api, 'groupBy');
   const xArea = useStore(api, 'xArea');
   const zoom = useStore(api, 'zoom');
-  const calendars = useStore(api, '_calendars');
   const markers = useStore(api, '_markers');
+  const progressLinePoints = useStore(api, '_progressLinePoints');
   const highlightTime = useStore(api, 'highlightTime');
+  const schedule = useStore(api, 'schedule');
 
   const [chartHeight, setChartHeight] = useState();
   const chartRef = useRef(null);
@@ -91,16 +93,14 @@ function Chart(props) {
 
   function dataRequest() {
     const clientHeightLocal = chartHeight || 0;
+    if (!clientHeightLocal) return;
+
     const num = Math.ceil(clientHeightLocal / (cellHeight || 1)) + 1;
     const pos = Math.floor((rScrollTop || 0) / (cellHeight || 1));
     const start = Math.max(0, pos - extraRows);
     const end = pos + num + extraRows;
     const from = start * (cellHeight || 0);
-    api.exec('render-data', {
-      start,
-      end,
-      from,
-    });
+    api.exec('render-data', { start, end, from });
   }
 
   useEffect(() => {
@@ -169,22 +169,26 @@ function Chart(props) {
       });
     }
 
-    const calendar = task.calendar ? api.getTaskCalendar(task) : undefined;
+    const calendar =
+      task.calendar || schedule?.resourceCalendars
+        ? api.getTaskCalendar(task)
+        : undefined;
     return calendar ? [calendar] : [];
   }
 
   const rowHighlights = useMemo(() => {
     const result = [];
-    if (!calendars) return result;
     const globalCalendar = api.getCalendar();
     visibleTasks.forEach((task, index) => {
       const rowCalendars = getRowCalendars(task);
       if (!rowCalendars.length) return;
       timelineCells.forEach((cell, cellIndex) => {
         const nonWorkingCalendars = rowCalendars.filter(
-          (cal) => !cal.isWorkingDay(cell.date),
+          (cal) => cal.noWorkingTime || !cal.isWorkingDay(cell.date),
         );
-        const isRowWorkingDay = nonWorkingCalendars.length === 0;
+        // a resource group works while any of its members does
+        const isRowWorkingDay =
+          nonWorkingCalendars.length < rowCalendars.length;
         const isGlobalHoliday =
           globalCalendar && !globalCalendar.isWorkingDay(cell.date);
 
@@ -202,14 +206,15 @@ function Chart(props) {
             .filter(Boolean);
           css = ['wx-weekend', ...extra].join(' ');
         }
-        if (isRowWorkingDay && isGlobalHoliday) css = 'wx-weekend-override';
+        if (isRowWorkingDay && isGlobalHoliday) {
+          css = 'wx-weekend-override';
+        }
 
         if (css) result.push({ ...cellConfig, css });
       });
     });
     return result;
   }, [
-    calendars,
     visibleTasks,
     timelineCells,
     cellHeight,
@@ -217,6 +222,7 @@ function Chart(props) {
     area,
     groupBy,
     resources,
+    schedule,
     api,
   ]);
 
@@ -266,7 +272,7 @@ function Chart(props) {
     };
   }, [onWheel]);
 
-  useRenderTime("chart");
+  useRenderTime('chart');
 
   return (
     <div
@@ -347,7 +353,22 @@ function Chart(props) {
 
         <CellGrid />
 
+        {progressLinePoints ? (
+          <svg
+            className="wx-mR7v2Xag wx-progress-line"
+            width={fullWidth}
+            height={chartGridHeight || 0}
+          >
+            <polyline
+              className="wx-mR7v2Xag wx-progress-line-path"
+              points={progressLinePoints}
+            />
+          </svg>
+        ) : null}
+
         <Bars readonly={readonly} taskTemplate={taskTemplate} />
+
+        <SCurve />
       </div>
     </div>
   );

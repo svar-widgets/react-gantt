@@ -1,12 +1,31 @@
-import { useState, useEffect, useMemo, useCallback, useContext } from 'react';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useContext,
+  useRef,
+} from 'react';
 import { Editor as WxEditor, registerEditorItem } from '@svar-ui/react-editor';
 import { registerToolbarItem } from '@svar-ui/react-toolbar';
-import { Locale, Tabs, RichSelect, Slider, Counter, TwoState, Checkbox } from '@svar-ui/react-core';
 import {
+  Locale,
+  Tabs,
+  RichSelect,
+  Slider,
+  Counter,
+  TwoState,
+  Checkbox,
+} from '@svar-ui/react-core';
+import {
+  defaultConstraintTypes,
   getEditorItems,
   prepareEditTask,
   getEditorButtons,
   filterEditorButtons,
+  getDateEditorButtons,
+  toInclusiveTask,
+  fromInclusiveTask,
 } from '@svar-ui/gantt-store';
 import { dateToString, locale } from '@svar-ui/lib-dom';
 import { en } from '@svar-ui/gantt-locales';
@@ -17,6 +36,7 @@ import Links from './editor/Links.jsx';
 import DateTimePicker from './editor/DateTimePicker.jsx';
 import Resources from './editor/Resources.jsx';
 import Segments from './editor/Segments.jsx';
+import Constraint from './editor/Constraint.jsx';
 import { useStore } from '@svar-ui/lib-react';
 
 import './Editor.css';
@@ -30,14 +50,13 @@ registerEditorItem('links', Links);
 registerEditorItem('checkbox', Checkbox);
 registerEditorItem('resources', Resources);
 registerEditorItem('segments', Segments);
+registerEditorItem('constraint', Constraint);
 registerToolbarItem('tabs', Tabs);
 
 const defBatch = 'general';
 
 const externalValues = {
   taskAssignments: null,
-  predecessors: null,
-  successors: null,
 };
 
 function Editor({
@@ -65,14 +84,19 @@ function Editor({
   const activeTask = useStore(api, '_activeTask');
   const taskId = useStore(api, 'activeTask');
   const unscheduledTasks = useStore(api, 'unscheduledTasks');
+  const inactiveTasks = useStore(api, 'inactiveTasks');
   const rollups = useStore(api, 'rollups');
   const summary = useStore(api, 'summary');
   const links = useStore(api, 'links');
   const splitTasks = useStore(api, 'splitTasks');
   const taskTypes = useStore(api, 'taskTypes');
   const resources = useStore(api, 'resources') ?? null;
+  const schedule = useStore(api, 'schedule');
   const undo = useStore(api, 'undo');
   const compactMode = useStore(api, '_compactMode');
+  const deadlines = useStore(api, 'deadlines');
+  const criticalPath = useStore(api, 'criticalPath');
+  const inclusiveEnd = useStore(api, 'inclusiveEnd');
 
   const [activeBatch, setActiveBatch] = useState(defBatch);
   const styleCss = useMemo(
@@ -84,22 +108,41 @@ function Editor({
     () =>
       getEditorItems({
         unscheduledTasks,
+        inactiveTasks,
         rollups,
         summary,
         taskTypes,
         resources,
         splitTasks,
+        deadlines,
+        schedule,
+        criticalPath,
       }),
-    [unscheduledTasks, rollups, summary, taskTypes, resources, splitTasks],
+    [
+      unscheduledTasks,
+      inactiveTasks,
+      rollups,
+      summary,
+      taskTypes,
+      resources,
+      splitTasks,
+      deadlines,
+      schedule,
+      criticalPath,
+    ],
   );
 
   const [linksActions, setLinksActions] = useState(() => new Map());
+  // not reactive in Svelte: a plain holder for the pending task change
+  const taskChangesRef = useRef(null);
   const [assignmentsActions, setAssignmentsActions] = useState(() => new Map());
   const [segmentsActions, setSegmentsActions] = useState(() => new Map());
   const [inProgress, setInProgress] = useState(null);
 
   const [editorValues, setEditorValues] = useState();
-  const [editorErrors, setEditorErrors] = useState(null);
+  // a ref, not state: onValidation and onAction/onChange fire in one go,
+  // handlers must see the errors at once
+  const editorErrorsRef = useRef(null);
 
   const [notSavedValues, setNotSavedValues] = useState({ ...externalValues });
 
@@ -110,13 +153,23 @@ function Editor({
     if (readonly) {
       // preserve parent to differentiate between segment and task
       let values = { parent: data.parent };
+      const shown = inclusiveEnd
+        ? toInclusiveTask(data, api.getTaskCalendar(data))
+        : data;
       baseItems.forEach(({ key, comp }) => {
         if (comp !== 'links' && comp !== 'resources') {
-          const value = data[key];
+          const value = shown[key];
           if (comp === 'date' && value instanceof Date) {
             values[key] = dateFormat(value);
           } else if (comp === 'slider' && key === 'progress') {
             values[key] = `${value}%`;
+          } else if (comp === 'constraint') {
+            const kind = defaultConstraintTypes.find(
+              (t) => t.id === value?.type,
+            );
+            values[key] = kind
+              ? `${_(kind.label)}: ${dateFormat(value.date)}`
+              : '';
           } else {
             values[key] = value;
           }
@@ -124,18 +177,32 @@ function Editor({
       });
       return values;
     }
-    return data || null;
-  }, [activeTask, readonly, baseItems, dateFormat]);
+    return inclusiveEnd
+      ? toInclusiveTask(data, api.getTaskCalendar(data))
+      : data;
+  }, [activeTask, readonly, baseItems, dateFormat, inclusiveEnd, api, _]);
+
+  // the form shows end-like dates under inclusiveEnd,
+  // saves and app callbacks get the stored values behind them
+  const [storedValues, setStoredValuesState] = useState(null);
+  // read synchronously in handlers (handleChange -> save)
+  const storedValuesRef = useRef(null);
+  const setStoredValues = useCallback((v) => {
+    storedValuesRef.current = v;
+    setStoredValuesState(v);
+  }, []);
 
   useEffect(() => {
     setEditorValues(task);
-  }, [task]);
+    setStoredValues(activeTask ? { ...activeTask } : null);
+  }, [task, activeTask, setStoredValues]);
 
   useEffect(() => {
     setLinksActions(new Map());
+    taskChangesRef.current = null;
     setAssignmentsActions(new Map());
     setSegmentsActions(new Map());
-    setEditorErrors(null);
+    editorErrorsRef.current = null;
     setInProgress(null);
     setActiveBatch((prev) => prev || defBatch);
     setNotSavedValues({ ...externalValues });
@@ -143,12 +210,18 @@ function Editor({
 
   // items
 
-  const handleExternalChange = useCallback(({ view, event, values }) => {
+  const handleExternalChange = useCallback(({ view, event, values = {} }) => {
     const { id, action, data } = event;
     if (view === 'links') {
       setLinksActions((prev) => {
         const next = new Map(prev);
-        next.set(id, { action, data });
+        // edits to one link add up: a type change survives a later lag change
+        const prevEdit = prev.get(id);
+        const merged =
+          action === 'update-link' && prevEdit?.action === action
+            ? { ...data, link: { ...prevEdit.data.link, ...data.link } }
+            : data;
+        next.set(id, { action, data: merged });
         return next;
       });
     } else if (view === 'resources') {
@@ -182,8 +255,8 @@ function Editor({
       if (!api || !srcItems || !Array.isArray(srcItems)) return srcItems;
       return srcItems
         .filter((b) => {
-          if (!editorValues) return true;
-          return !b.isHidden || !b.isHidden(editorValues, api.getState());
+          if (!storedValues) return true;
+          return !b.isHidden || !b.isHidden(storedValues, api.getState());
         })
         .map((b) => {
           const item = { ...b };
@@ -195,22 +268,19 @@ function Editor({
             item.batch = defBatch;
           }
 
-          if (
-            ['links', 'resources', 'segments'].includes(item.key) &&
-            api
-          ) {
+          if (['links', 'resources', 'segments'].includes(item.key) && api) {
             item.api = api;
             item.autoSave = autoSave;
             if (item.key === 'resources') {
               item.taskAssignments = notSavedValues.taskAssignments;
             } else if (item.key === 'links') {
-              item.successors = notSavedValues.successors;
-              item.predecessors = notSavedValues.predecessors;
+              if (!autoSave) item.edits = linksActions;
             } else if (item.key === 'segments') {
               item.segments = notSavedValues.segments;
             }
             item.onExtChange = handleExternalChange;
           }
+          if (item.key === 'constraint') item.task = editorValues;
           if (item.id === 'tabs') {
             item.api = api;
             item.css = 'wx-gantt-tabs';
@@ -229,13 +299,21 @@ function Editor({
           if (item.config?.placeholder)
             item.config.placeholder = _(item.config.placeholder);
 
+          if (item.comp === 'date' && api) {
+            item.config = { ...item.config };
+            item.config.buttons = getDateEditorButtons(
+              item.key,
+              unscheduledTasks,
+            ).map((b) => _(b));
+          }
+
           if (
-            editorValues &&
+            storedValues &&
             item.isDisabled &&
             item.isDisabled(
-              editorValues,
+              storedValues,
               api.getState(),
-              api.getTaskCalendar(editorValues),
+              api.getTaskCalendar(storedValues),
             )
           ) {
             item.disabled = true;
@@ -243,7 +321,19 @@ function Editor({
           return item;
         });
     },
-    [api, editorValues, autoSave, notSavedValues, activeBatch, _, handleExternalChange, onTabChange],
+    [
+      api,
+      storedValues,
+      editorValues,
+      autoSave,
+      notSavedValues,
+      linksActions,
+      activeBatch,
+      _,
+      unscheduledTasks,
+      handleExternalChange,
+      onTabChange,
+    ],
   );
 
   const editorItems = useMemo(() => {
@@ -275,6 +365,10 @@ function Editor({
           resources,
           autoSave,
           splitTasks,
+          deadlines,
+          criticalPath,
+          inactiveTasks,
+          schedule,
         });
       }
       bar.items = filterEditorButtons(bar.items, (item) => {
@@ -293,7 +387,16 @@ function Editor({
       }
       return bar;
     },
-    [resources, autoSave, splitTasks, normalizeItems],
+    [
+      resources,
+      autoSave,
+      splitTasks,
+      deadlines,
+      criticalPath,
+      inactiveTasks,
+      schedule,
+      normalizeItems,
+    ],
   );
 
   const normalizedTopBar = useMemo(() => {
@@ -306,21 +409,6 @@ function Editor({
     return normalizeBar(bottomBar, editorBatches, 'bottom');
   }, [bottomBar, readonly, normalizeBar, editorBatches]);
 
-  const saveSections = useCallback(() => {
-    for (let [linkId, value] of linksActions) {
-      if (links.byId(linkId)) {
-        const { action, data } = value;
-        api.exec(action, data);
-      }
-    }
-    [assignmentsActions, segmentsActions].forEach((actions) => {
-      for (let [, value] of actions) {
-        const { action, data } = value;
-        api.exec(action, data);
-      }
-    });
-  }, [api, links, linksActions, assignmentsActions, segmentsActions]);
-
   const deleteTask = useCallback(() => {
     api.exec('delete-task', { id: taskId });
   }, [api, taskId]);
@@ -329,32 +417,17 @@ function Editor({
     api.exec('show-editor', { id: null });
   }, [api]);
 
-  const handleAction = useCallback(
-    (ev) => {
-      const { item } = ev;
-      if (item.id === 'delete') {
-        deleteTask();
-      } else if (item.id === 'save') {
-        saveSections();
-      }
-      if (item.comp) hide();
-    },
-    [deleteTask, saveSections, hide],
-  );
-
   const normalizeTask = useCallback(
     (t, key, input) => {
-      if (unscheduledTasks && t.type === 'summary') t.unscheduled = false;
-
       prepareEditTask(t, api.getState(), api.getTaskCalendar(t), key);
       if (!input) setInProgress(false);
       return t;
     },
-    [unscheduledTasks, api],
+    [api],
   );
 
   const save = useCallback(
-    (values, changes) => {
+    (values) => {
       delete values.links;
       delete values.data;
 
@@ -371,11 +444,47 @@ function Editor({
       if (autoSave && inProgress) data.inProgress = inProgress;
 
       api.exec('update-task', data);
-
-      // when changes is not empty, Editor calls onSave and onAction({id: "save"})
-      if (!autoSave && !changes?.length) saveSections();
     },
-    [api, taskId, autoSave, inProgress, editorKeys, saveSections],
+    [api, taskId, autoSave, inProgress, editorKeys],
+  );
+
+  const saveAll = useCallback(() => {
+    // removals, then link updates, then the task change: a link update is
+    // checked against the saved task
+    const edits = [...linksActions.values()].filter((e) =>
+      links.byId(e.data.id),
+    );
+    const steps = [
+      ...edits.filter((e) => e.action === 'delete-link'),
+      ...edits.filter((e) => e.action !== 'delete-link'),
+    ];
+
+    const history = api.getHistory();
+    history?.startBatch();
+    steps.forEach(({ action, data }) => api.exec(action, data));
+    if (taskChangesRef.current) save({ ...taskChangesRef.current });
+    [assignmentsActions, segmentsActions].forEach((actions) => {
+      for (let [, value] of actions) {
+        const { action, data } = value;
+        api.exec(action, data);
+      }
+    });
+    history?.endBatch();
+    taskChangesRef.current = null;
+  }, [api, links, linksActions, assignmentsActions, segmentsActions, save]);
+
+  const handleAction = useCallback(
+    (ev) => {
+      const { item } = ev;
+      if (item.id === 'delete') {
+        deleteTask();
+      } else if (item.id === 'save') {
+        if (editorErrorsRef.current) return;
+        saveAll();
+      }
+      if (item.comp) hide();
+    },
+    [deleteTask, saveAll, hide],
   );
 
   const handleChange = useCallback(
@@ -384,29 +493,41 @@ function Editor({
 
       if (input) setInProgress(true);
 
-      ev.update = normalizeTask({ ...update }, key, input);
+      const values = inclusiveEnd
+        ? fromInclusiveTask(update, key, storedValuesRef.current)
+        : { ...update };
+      const stored = normalizeTask(values, key, input);
+      setStoredValues(stored);
+      ev.update = inclusiveEnd
+        ? toInclusiveTask(stored, api.getTaskCalendar(stored))
+        : { ...stored };
 
       if (!autoSave) setEditorValues(ev.update);
-      else if (!editorErrors && !input) {
+      else if (!editorErrorsRef.current && !input) {
         const item = editorItems.find((i) => i.key === key);
         const v = update[key];
         const isValid = !item.validation || item.validation(v);
-        if (isValid && (!item.required || v)) save(ev.update);
+        if (isValid && (!item.required || v)) save({ ...stored });
       }
     },
-    [autoSave, normalizeTask, editorErrors, editorItems, save],
+    [
+      api,
+      autoSave,
+      inclusiveEnd,
+      normalizeTask,
+      setStoredValues,
+      editorItems,
+      save,
+    ],
   );
 
-  const handleSave = useCallback(
-    (ev) => {
-      if (!autoSave) save(ev.values, ev.changes);
-    },
-    [autoSave, save],
-  );
+  const handleSave = useCallback(() => {
+    if (!autoSave) taskChangesRef.current = { ...storedValuesRef.current };
+  }, [autoSave]);
 
   const handleValidation = useCallback((check) => {
     // get all errors after onchange action
-    setEditorErrors(check.errors);
+    editorErrorsRef.current = check.errors;
   }, []);
 
   const defaultHotkeys = useMemo(

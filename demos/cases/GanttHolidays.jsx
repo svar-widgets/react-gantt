@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { getData } from '../data';
 import { Gantt } from '../../src/';
 import { getISOWeek, getQuarter, startOfWeek } from 'date-fns';
@@ -77,13 +77,18 @@ function GanttHolidays({ skinSettings }) {
     hour: isHourOff,
   };
 
-  function highlightTime(d, u) {
-    for (const unit in off) {
-      if (off[unit](d)) return 'wx-weekend';
-      if (unit === u) break;
-    }
-    return '';
-  }
+  const highlightTime = useCallback(
+    (d, u) => {
+      for (const unit in off) {
+        if (off[unit](d)) return 'wx-weekend';
+        if (unit === u) break;
+      }
+      return '';
+    },
+    [sabbaticalYear, summerBreak, everySecondWeekOff, everySecondQuarterOff],
+  );
+
+  const zoom = useMemo(() => ({ level: activeZoomLevel }), [activeZoomLevel]);
 
   return (
     <div className="demo wx-aabQtWhE">
@@ -128,7 +133,7 @@ function GanttHolidays({ skinSettings }) {
           links={data.links}
           scales={scales}
           highlightTime={highlightTime}
-          zoom={{ level: activeZoomLevel }}
+          zoom={zoom}
         />
       </div>
     </div>

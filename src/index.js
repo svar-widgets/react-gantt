@@ -4,6 +4,7 @@ import ContextMenu from './components/ContextMenu.jsx';
 import Editor from './components/Editor.jsx';
 import HeaderMenu from './components/grid/HeaderMenu.jsx';
 import ResourceLoad from './components/resource/ResourceLoad.jsx';
+import ConflictReport from './components/conflicts/ConflictReport.jsx';
 
 import Tooltip from './widgets/Tooltip.jsx';
 
@@ -30,6 +31,8 @@ export {
 
 export { registerEditorItem } from '@svar-ui/react-editor';
 
+export { locateTask } from './helpers/dnd.js';
+
 export const version = pkg.version;
 
 export {
@@ -40,6 +43,7 @@ export {
   Tooltip,
   Editor,
   ResourceLoad,
+  ConflictReport,
   Material,
   Willow,
   WillowDark,

@@ -29,7 +29,7 @@ export default function GroupTextCell({ row }) {
       return _('Ungrouped');
     }
     return (
-      <div className="group">
+      <div className="wx-aaaTwQvk group">
         {groupBy.field}: {groupValue}
       </div>
     );

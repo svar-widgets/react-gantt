@@ -10,7 +10,7 @@ function ProResources({ skinSettings }) {
   const [api, setApi] = useState();
   const [tasks] = useState([...data.tasks]);
 
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(true);
   const [multipleResources, setMultipleResources] = useState(false);
   const [resourceHierarchy, setResourceHierarchy] = useState(false);
   const [popup, setPopup] = useState(false);
@@ -24,16 +24,16 @@ function ProResources({ skinSettings }) {
             resourceHierarchy,
           }
         : null,
-    [enabled, multipleResources, resourceHierarchy]
+    [enabled, multipleResources, resourceHierarchy],
   );
 
   const columns = useMemo(() => {
     let cols = getDefaultColumns({ resources: true });
-    cols.find(c => c.id === 'resources').editor = 'multiselect';
+    cols.find((c) => c.id === 'resources').editor = 'multiselect';
 
     // drop the resources column when grouping by resource
     if (enabled) {
-      const index = cols.findIndex(c => c.id === 'resources');
+      const index = cols.findIndex((c) => c.id === 'resources');
       if (index >= 0) cols.splice(index, 1);
     }
 
@@ -72,7 +72,9 @@ function ProResources({ skinSettings }) {
                     <div className="switch wx-B5pD9oI4">
                       <Field label="Multiple resources" position="left">
                         <Switch
-                          onChange={({ value }) => onMultipleResourcesChange(value)}
+                          onChange={({ value }) =>
+                            onMultipleResourcesChange(value)
+                          }
                           value={multipleResources}
                         />
                       </Field>
