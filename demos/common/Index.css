@@ -105,14 +105,18 @@
   transition: none;
 }
 
+.wx-demos.sidebar-top {
+  position: sticky;
+  top: 0px;
+  z-index: 1;
+  padding-bottom: 12px;
+  background-color: var(--demo-bg);
+}
+
 .wx-demos.sidebar-header {
   height: 60px;
   display: flex;
   justify-content: space-between;
-  position: sticky;
-  top: 0px;
-  z-index: 1;
-  background-color: var(--demo-bg);
   padding: 14px 16px 14px 18px;
 }
 
@@ -264,6 +268,11 @@
     transform 0.3s,
     width 0.3s;
   overflow-y: auto;
+}
+
+.wx-demos.box-search {
+  padding: 0 16px;
+  --wx-input-width: 100%;
 }
 
 .wx-demos.box-links {

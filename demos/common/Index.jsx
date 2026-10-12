@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { HashRouter, useNavigate } from 'react-router-dom';
-import { Willow } from '@svar-ui/react-core';
+import { Willow, Text } from '@svar-ui/react-core';
 
 import Router from './Router';
 import Link from './Link';
@@ -25,6 +25,26 @@ function DemoExplorerContent({
   const [githubLink, setGithubLink] = useState('');
   const [show, setShow] = useState(true);
   const [innerWidth, setInnerWidth] = useState(window.innerWidth);
+  const [search, setSearch] = useState('');
+
+  const filteredLinks = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return links;
+
+    const result = [];
+    let group = null;
+    links.forEach((data) => {
+      if (!Array.isArray(data)) group = data;
+      else if (data[1].toLowerCase().includes(query)) {
+        if (group) {
+          result.push(group);
+          group = null;
+        }
+        result.push(data);
+      }
+    });
+    return result;
+  }, [search]);
 
   const isMobileView = innerWidth <= MOBILE_BREAKPOINT;
 
@@ -91,35 +111,46 @@ function DemoExplorerContent({
         role="tabpanel"
       >
         <div className="wx-demos sidebar-content">
-          <div className="wx-demos sidebar-header">
-            <div className="wx-demos box-title">
-              <a
-                href="https://svar.dev/react/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img src={LogoIcon} alt="Logo icon" className="box-title-img" />
-              </a>
-              <div className="wx-demos separator"></div>
-              <a
-                href={`https://svar.dev/react/${productLink}/`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <h1 className="wx-demos title">React {publicName}</h1>
-              </a>
+          <div className="wx-demos sidebar-top">
+            <div className="wx-demos sidebar-header">
+              <div className="wx-demos box-title">
+                <a
+                  href="https://svar.dev/react/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img src={LogoIcon} alt="Logo icon" className="box-title-img" />
+                </a>
+                <div className="wx-demos separator"></div>
+                <a
+                  href={`https://svar.dev/react/${productLink}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <h1 className="wx-demos title">React {publicName}</h1>
+                </a>
+              </div>
+              <div className="wx-demos btn-box">
+                <Button
+                  type="secondary"
+                  icon="wxi-angle-left"
+                  css="toggle-btn"
+                  onClick={toggleSidebar}
+                ></Button>
+              </div>
             </div>
-            <div className="wx-demos btn-box">
-              <Button
-                type="secondary"
-                icon="wxi-angle-left"
-                css="toggle-btn"
-                onClick={toggleSidebar}
-              ></Button>
+            <div className="wx-demos box-search">
+              <Text
+                value={search}
+                onChange={({ value }) => setSearch(value)}
+                placeholder="Search demos"
+                icon="wxi-search"
+                clear
+              />
             </div>
           </div>
           <div className="wx-demos box-links">
-            {links.map((data, i) =>
+            {filteredLinks.map((data) =>
               Array.isArray(data) ? (
                 <Link
                   key={data[0]}
@@ -128,7 +159,7 @@ function DemoExplorerContent({
                   onClick={() => isMobileView && setShow(false)}
                 />
               ) : (
-                <div key={`group-${i}`} className="wx-demos group-title">
+                <div key={`group-${data.group}`} className="wx-demos group-title">
                   {data.group}
                 </div>
               ),
