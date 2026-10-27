@@ -444,6 +444,13 @@ export default function Grid(props) {
     };
   }, []);
 
+  const collapsedIdRef = useRef(null);
+  const reopenDragged = useCallback(() => {
+    if (collapsedIdRef.current === null) return;
+    api.exec('open-task', { id: collapsedIdRef.current, mode: true });
+    collapsedIdRef.current = null;
+  }, [api]);
+
   const startReorder = useCallback(
     ({ id }) => {
       if (readonly || isSubGrid) return false;
@@ -452,13 +459,20 @@ export default function Grid(props) {
         if (task.$group || task.data) return false;
       }
 
-      if (api.getTask(id).open) api.exec('open-task', { id, mode: false });
+      // a branch is dragged as one row and reopened on drop
+      if (api.getTask(id).open) {
+        collapsedIdRef.current = id;
+        api.exec('open-task', { id, mode: false });
+      }
 
       const t = api.getState()._tasks.find((t) => t.id === id);
       setDragTask(t || null);
-      if (!t) return false;
+      if (!t) {
+        reopenDragged();
+        return false;
+      }
     },
-    [api, readonly, isSubGrid],
+    [api, readonly, isSubGrid, reopenDragged],
   );
 
   const endReorder = useCallback(
@@ -472,9 +486,10 @@ export default function Grid(props) {
           inProgress: false,
         });
       }
+      reopenDragged();
       setDragTask(null);
     },
-    [api, reorderTasks, scrollDelta],
+    [api, reorderTasks, scrollDelta, reopenDragged],
   );
 
   const moveReorder = useCallback(

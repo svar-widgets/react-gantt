@@ -49,6 +49,7 @@ function ProManualInactive({ skinSettings }) {
           scales={data.scales}
           schedule={{ auto: true }}
           inactiveTasks
+          unscheduledTasks
           columns={columns}
         />
       </ContextMenu>

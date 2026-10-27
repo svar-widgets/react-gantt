@@ -1,3 +1,16 @@
+## 2.8.2
+
+### Fixes
+
+- Unscheduled state is incorrect with auto summary conversions
+- Links are not redrawn after replacing data
+- Impossible to perform bulk open/close operations
+- Summary `autoConvert`: an empty summary stays when its last child is moved out
+- Summary `autoProgress`: progress is not shown after inactiveTasks is toggled
+- Critical path crashes with unscheduled tasks
+- Dragging a summary does not move the subtasks slack bars
+- Adding a task to a closed lazy branch does not load its other children
+
 ## 2.8.1
 
 ### Fixes

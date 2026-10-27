@@ -211,11 +211,13 @@ function Bars(props) {
       return (
         unscheduledTasks &&
         task.unscheduled &&
-        (task.type === 'task' || task.type === 'milestone') &&
+        (task.type === 'task' ||
+          task.type === 'milestone' ||
+          (task.type === 'summary' && schedule?.auto && task.manual)) &&
         !task.$group
       );
     },
-    [placeholderRow, unscheduledTasks],
+    [placeholderRow, unscheduledTasks, schedule],
   );
 
   const isScheduleWorkingDay = useCallback(
@@ -429,8 +431,8 @@ function Bars(props) {
             ...dates,
             text: _('New task'),
             type: 'task',
-            eventSource: 'placeholder',
           },
+          eventSource: 'placeholder',
         });
       } else api.exec('update-task', { id: task.id, task: dates });
 

@@ -6,6 +6,8 @@ import { getDefaultColumns } from '@svar-ui/gantt-store';
 import SchedulingFlagCell from '../custom/SchedulingFlagCell';
 import './ProScheduleAll.css';
 
+const summaryConfig = { autoConvert: true };
+
 const linkRemovalReasons = {
   cycle: 'it would close a dependency loop',
   'parent-chain': 'a task cannot be linked to its own summary or subtask',
@@ -316,6 +318,7 @@ function ProScheduleAll({ skinSettings }) {
               tasks={tasks}
               links={data.links}
               scales={data.scales}
+              summary={summaryConfig}
               calendar={calendar}
               calendars={calendarsList}
               resources={resources}
