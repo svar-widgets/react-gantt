@@ -882,7 +882,7 @@ function Bars(props) {
           (isTaskCritical(task) ? ' wx-critical' : '');
         return (
           <Fragment key={task.id}>
-            {!task.$skip && (
+            {!task.$skip && Number.isFinite(task.$x) && (
               <div
                 className={'wx-GKbcLEGA ' + barClass}
                 style={taskStyle(task)}
@@ -969,7 +969,7 @@ function Bars(props) {
                   <Rollups key={i} rollup={rollup} parent={task} />
                 ))
               : null}
-            {baselinesValue && !task.$skip_baseline ? (
+            {baselinesValue && !task.$skip_baseline && Number.isFinite(task.$x_base) ? (
               <div
                 className={
                   'wx-GKbcLEGA wx-baseline' +
