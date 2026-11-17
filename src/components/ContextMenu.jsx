@@ -86,10 +86,10 @@ const ContextMenu = forwardRef(function ContextMenu(
     if (!api) return;
 
     api.on('scroll-chart', () => {
-      if (menuRef.current && menuRef.current.show) menuRef.current.show();
+      if (menuRef.current && menuRef.current.show) menuRef.current.show(null);
     });
     api.on('drag-task', () => {
-      if (menuRef.current && menuRef.current.show) menuRef.current.show();
+      if (menuRef.current && menuRef.current.show) menuRef.current.show(null);
     });
   }, [api]);
 

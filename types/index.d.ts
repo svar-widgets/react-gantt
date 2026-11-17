@@ -63,7 +63,18 @@ export declare const Gantt: ForwardRefExoticComponent<
     }>;
     readonly?: boolean;
     cellBorders?: 'column' | 'full';
-    highlightTime?: (date: Date, unit: 'day' | 'hour') => string;
+    highlightTime?: (
+      date: Date,
+      unit:
+        | 'minute'
+        | 'hour'
+        | 'day'
+        | 'week'
+        | 'month'
+        | 'quarter'
+        | 'year'
+        | string,
+    ) => string;
     init?: (api: IApi) => void;
   } & Omit<IConfig, 'columns'> &
     GanttActions<TMethodsConfig> &

@@ -153,7 +153,6 @@ export default function Resources({
         id: 'resource',
         header: _('Resource'),
         cell: ResourcesEditorCell,
-        type: 'string',
         flexgrow: 3,
         editor: (row) => {
           return {

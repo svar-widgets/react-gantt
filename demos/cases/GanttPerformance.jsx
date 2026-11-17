@@ -150,7 +150,7 @@ function GanttPerformance(props) {
     let id;
     const check = () => {
       if (ganttArea.current?.querySelector('.wx-bar')) {
-        if (outArea.current) outArea.current.textContent = new Date() - start;
+        if (outArea.current) outArea.current.textContent = String(+new Date() - +start);
       } else id = requestAnimationFrame(check);
     };
     check();

@@ -36,7 +36,7 @@ function GanttFilter({ skinSettings }) {
   return (
     <div className="demo wx-aabXqObx">
       <div className="bar wx-aabXqObx">
-        <Field label="Filter by Task name" className="field">
+        <Field label="Filter by Task name">
           <Text
             clear
             icon="wxi-search"
@@ -44,7 +44,7 @@ function GanttFilter({ skinSettings }) {
             onChange={filterTasks}
           />
         </Field>
-        <Field label="Open tasks while filtering" className="field">
+        <Field label="Open tasks while filtering">
           <Switch
             value={open}
             onChange={({ value }) => setOpen(value)}

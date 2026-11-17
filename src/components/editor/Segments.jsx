@@ -42,7 +42,6 @@ export default function Segments({ api, autoSave, segments, onExtChange }) {
       {
         id: 'text',
         header: _('Name'),
-        type: 'string',
         flexgrow: 3,
         editor: 'text',
       },

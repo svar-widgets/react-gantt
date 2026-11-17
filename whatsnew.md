@@ -1,3 +1,15 @@
+## 2.8.3
+
+### Fixes
+
+- A custom cell in the editor config of the resources column is replaced by the default one
+- `highlightTime` type does not allow scale units other than "day" and "hour"
+- Store and data provider do not declare their runtime dependencies
+- Store types do not allow null for unscheduled task dates, segments and the `show-editor` / `filter-tasks` actions
+- `serialize()` returns a union of all collection types instead of the requested one
+- Locales package has no types
+- Grid rows jump during vertical scroll
+
 ## 2.8.2
 
 ### Fixes

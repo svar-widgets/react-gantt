@@ -276,7 +276,6 @@ export default function Grid(props) {
         const editor = resCol.editor;
         const config = editor.config;
         if (!config.cell) config.cell = EditorResourcesCell;
-        config.cell = EditorResourcesCell;
         if (!config.dropdown) config.dropdown = { width: 'auto' };
         resCol.editor = (row) => {
           if (row.type !== 'summary') return editor;
